@@ -1,0 +1,32 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
+      "passThroughEnv": [
+        "HF_API_KEY_ID",
+        "HF_API_KEY_SECRET",
+        "ANTHROPIC_API_KEY",
+        "ANTHROPIC_WORKSPACE_ID",
+        "SUPABASE_SECRET_KEY",
+        "STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET",
+        "RENDER_SIGNING_SECRET",
+        "CRON_SECRET",
+        "ADMIN_EMAILS",
+        "VISION_MODEL",
+        "RENDER_MODEL",
+        "RENDER_DAILY_CAP_USD",
+        "AMAZON_ASSOCIATE_TAG",
+        "SKIMLINKS_PUBLISHER_ID",
+        "SERPAPI_API_KEY",
+        "SHOP_SEARCH_DAILY_CAP"
+      ]
+    },
+    "dev": { "cache": false, "persistent": true },
+    "lint": {},
+    "test": {},
+    "typecheck": {}
+  }
+}

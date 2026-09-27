@@ -1,0 +1,176 @@
+@import "tailwindcss";
+
+/*
+ * Semantic tokens. Components only use these names.
+ * One theme: dark (chosen 2026-09-26). The accent (denim) has one job: it marks the brand and everything the user can act on
+ * (buttons, the tap brackets, the slider handle). It is never decoration.
+ */
+:root {
+  --bg: #121110; /* warm near-black, never pure black */
+  --surface: #1b1a18; /* cards, sheets */
+  --surface-2: #252320; /* wells, image backgrounds */
+  --fg: #f2efe8; /* text: 16.4:1 on the page */
+  --muted: #a39e93; /* secondary text: 7.1:1 */
+  --line: #34312c; /* hairlines */
+  --accent: #4a70b5; /* denim fills: white text 4.9:1; as a mark on the page 3.8:1 */
+  --accent-2: #3d63a8; /* pressed */
+  --on-accent: #ffffff;
+  /* Denim as text or a link on the dark page: 8.6:1. A fill can't also be readable text here. */
+  --accent-ink: #98b0dc;
+  --accent-ink-2: #b9c9e6; /* hovered link */
+  --stage: #3d63a8;
+  --accent-on-dark: #4a70b5;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  color-scheme: dark;
+}
+
+/* Wrap any dark UI (the phone screen) in .on-dark so accents stay visible there. */
+.on-dark {
+  --accent: var(--accent-on-dark);
+  --accent-2: #3d63a8;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-ink-2: var(--accent-ink-2);
+  --color-on-accent: var(--on-accent);
+  --color-stage: var(--stage);
+  /* Phone UI is always dark. */
+  --color-device: #0c0c0b;
+  --color-device-fg: #f5f3ee;
+  --font-sans: var(--font-instrument);
+  --ease-out: var(--ease-out);
+  --ease-in-out: var(--ease-in-out);
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-instrument), system-ui, sans-serif;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* Semi-condensed display cut of Instrument Sans for headlines. */
+.display {
+  font-stretch: 82%;
+  font-variation-settings: "wdth" 82;
+  letter-spacing: -0.028em;
+  line-height: 0.96;
+}
+
+/* Terms and Privacy: plain paragraphs and bullet lists with room to breathe. */
+.legal-body > * + * {
+  margin-top: 0.85rem;
+}
+.legal-body ul {
+  list-style: disc;
+  padding-left: 1.2rem;
+}
+.legal-body li + li {
+  margin-top: 0.4rem;
+}
+.legal-body strong {
+  font-weight: 600;
+}
+
+/* Neutral inset edge so photos don't bleed into the background. */
+.photo-edge {
+  outline: 1px solid rgb(255 255 255 / 0.08);
+  outline-offset: -1px;
+}
+
+/* Camera: shutter flash and countdown tick. Reduced motion skips both (see motion-safe:). */
+@keyframes flash {
+  from {
+    opacity: 0.85;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes tick {
+  from {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes scanline {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(calc(100vh));
+  }
+}
+
+/* Home hero reveal: a scan passes over the plain photo, parts get marked, the new version
+   wipes in with a soft flash. All wrapped in motion-safe: at the call sites. */
+@keyframes reveal-scan {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+@keyframes reveal-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes reveal-flash {
+  0% {
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.45;
+  }
+  100% {
+    opacity: 0;
+  }
+}

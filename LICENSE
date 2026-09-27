@@ -1,0 +1,20 @@
+Copyright (c) 2026 The Scryle team. All rights reserved.
+
+This source code is published so people can read it and so invited collaborators can work on it.
+It is not open source.
+
+You may view the code on GitHub and fork it on GitHub only to propose changes back to this repository
+through pull requests.
+
+Without written permission from the copyright holders you may not copy, modify, distribute, sublicense,
+sell, host, or run this code or any part of it, or use it to build a competing product or service.
+
+By sending a contribution (for example a pull request), you agree that the copyright holders may use,
+change, and distribute it as part of this project under any license, and you confirm that you have the
+right to give that permission.
+
+THE CODE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED. IN NO EVENT SHALL THE
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM THE CODE OR ITS USE.
+
+Third-party parts keep their own licenses, for example the Instrument Sans font
+(apps/web/assets/fonts/OFL-instrument-sans.txt) and the npm packages listed in package-lock.json.

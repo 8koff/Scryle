@@ -1,0 +1,22 @@
+name: Feature idea
+description: Suggest something new or a change.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What is hard or missing today? Who is it for?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+    validations:
+      required: true
+  - type: textarea
+    id: cost
+    attributes:
+      label: Cost and safety
+      description: Does it call a paid API, handle photos of people, or touch payments? How?

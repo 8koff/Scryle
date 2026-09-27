@@ -1,0 +1,35 @@
+name: Bug report
+description: Something doesn't work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Security problem?** Don't file it here. Use the Security tab → "Report a vulnerability".
+        Don't paste keys, emails, or photos of real people.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: And what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to …
+        2. Tap …
+        3. See …
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: Where
+      description: Local dev or live site? Browser and device?
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error messages or screenshots

@@ -1,0 +1,17 @@
+# What the Vercel CLI must never upload. Without this file it uploads everything.
+# Secrets stay on this computer; Vercel gets them as environment variables instead.
+.env*
+!.env.example
+.vercel
+
+# Rebuilt on Vercel, or only used on this computer.
+node_modules
+.next
+.turbo
+.smoke
+.claude
+apps/web/scripts
+HANDOFF.md
+.github
+ONBOARDING.md
+CONTRIBUTING.md
