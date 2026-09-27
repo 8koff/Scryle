@@ -1,6 +1,9 @@
 # Contributing
 
-Thanks for helping. New here? Read [`ONBOARDING.md`](ONBOARDING.md) first.
+**Only people the owner invites can contribute.** Pull requests from anyone else are closed without review.
+
+New here? Read [`ONBOARDING.md`](ONBOARDING.md) first. Using an AI coding assistant? It must follow
+[`AI_RULES.md`](AI_RULES.md).
 
 This code is **not open source** (see [`LICENSE`](LICENSE)). By opening a pull request you agree that the project
 may use your contribution under the terms in `LICENSE`.
@@ -33,7 +36,8 @@ may use your contribution under the terms in `LICENSE`.
 - For a database change: a **new** numbered migration with row level security on every new table, plus the same SQL
   added to `supabase/setup-all.sql`.
 - No secrets, keys, personal emails, account ids or real people's photos anywhere in the diff.
-- It keeps the product rules in `ONBOARDING.md` section 6.
+- It keeps the product rules in `ONBOARDING.md` section 6 and the limits in `AI_RULES.md`.
+- Files listed in `.github/CODEOWNERS` need the owner's approval.
 
 ## Paid APIs
 

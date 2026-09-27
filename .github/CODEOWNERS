@@ -1,0 +1,61 @@
+# The owner must approve every pull request that touches these paths (see AI_RULES.md section 2).
+# Branch protection on main turns this on with "Require review from Code Owners".
+
+# Payments and credits
+/apps/web/app/api/checkout/        @8koff
+/apps/web/app/api/stripe/          @8koff
+/apps/web/lib/server/checkout.ts   @8koff
+/apps/web/lib/server/credits.ts    @8koff
+/packages/core/src/credits.ts      @8koff
+
+# Spend cap and rate limits
+/apps/web/lib/server/spend.ts      @8koff
+/apps/web/lib/server/rate-limit.ts @8koff
+/apps/web/lib/server/services.ts   @8koff
+
+# Auth, admin, signing
+/apps/web/lib/server/accounts.ts   @8koff
+/apps/web/lib/server/admin.ts      @8koff
+/apps/web/lib/server/signing.ts    @8koff
+/apps/web/lib/account/             @8koff
+
+# Security headers
+/apps/web/proxy.ts                 @8koff
+/apps/web/lib/security/            @8koff
+
+# User safety
+/apps/web/lib/server/scan.ts            @8koff
+/apps/web/lib/server/vision/            @8koff
+/packages/core/src/packs/               @8koff
+/apps/web/lib/server/reports.ts         @8koff
+/apps/web/lib/server/delete-account.ts  @8koff
+
+# Outbound fetches (SSRF allowlists)
+/apps/web/lib/server/render-assets.ts @8koff
+/apps/web/lib/shop/live.ts            @8koff
+/apps/web/lib/server/share.ts         @8koff
+/apps/web/app/go/                     @8koff
+
+# Database
+/supabase/                         @8koff
+
+# Legal and brand
+/apps/web/app/terms/               @8koff
+/apps/web/app/privacy/             @8koff
+/packages/core/src/brand.ts        @8koff
+/LICENSE                           @8koff
+
+# Build, deploy, CI
+/.github/                          @8koff
+/.vercelignore                     @8koff
+/.gitignore                        @8koff
+/turbo.json                        @8koff
+/apps/web/vercel.json              @8koff
+/apps/web/next.config.ts           @8koff
+package.json                       @8koff
+package-lock.json                  @8koff
+
+# The AI rules themselves
+/AI_RULES.md                       @8koff
+/CLAUDE.md                         @8koff
+/AGENTS.md                         @8koff

@@ -118,6 +118,10 @@ These are product rules, not style preferences. A pull request that breaks one w
    For a big visual change, add before/after screenshots to the pull request.
 6. **No secrets or personal data in git.** Not in code, tests, docs, commit messages, or screenshots.
 
+> **Using an AI coding assistant?** It must follow [`AI_RULES.md`](AI_RULES.md). Claude Code, Codex, Cursor and
+> Copilot pick it up on their own (through `CLAUDE.md`, `AGENTS.md` and `.github/copilot-instructions.md`).
+> For any other tool, paste the file into its instructions.
+
 ## 7. Security basics for this repo
 
 This repo is public. Assume attackers read every line.

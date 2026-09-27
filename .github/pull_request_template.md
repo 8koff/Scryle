@@ -15,4 +15,4 @@
 - [ ] New/changed API route: auth check, `zod` validation, rate limit
 - [ ] Database change: new numbered migration, RLS on new tables, added to `supabase/setup-all.sql`
 - [ ] Paid API calls stay behind the spend cap and fail closed
-- [ ] Keeps the product rules in `ONBOARDING.md` section 6
+- [ ] Keeps the product rules in `ONBOARDING.md` section 6 and the limits in `AI_RULES.md`

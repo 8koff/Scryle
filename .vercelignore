@@ -13,5 +13,9 @@ node_modules
 apps/web/scripts
 HANDOFF.md
 .github
+AI_RULES.md
+AGENTS.md
+CLAUDE.md
+CODE_OF_CONDUCT.md
 ONBOARDING.md
 CONTRIBUTING.md

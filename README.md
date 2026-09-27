@@ -23,8 +23,9 @@ Then open http://localhost:3000. Run all checks with `npx turbo run typecheck te
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | How to open a good pull request |
 | [`SECURITY.md`](SECURITY.md) | How to report a security problem (privately) |
 | [`HANDOFF.md`](HANDOFF.md) | Detailed log of recent work and decisions |
-| [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) | How we treat each other |
-| [`LICENSE`](LICENSE) | All rights reserved: you may read the code and send pull requests, not reuse it |
+| [`AI_RULES.md`](AI_RULES.md) | Hard limits every AI coding assistant must follow here |
+| [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) | Team norms |
+| [`LICENSE`](LICENSE) | All rights reserved: public to read, not to reuse. Only invited collaborators contribute |
 
 ## Stack
 
