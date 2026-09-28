@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BRAND, CREDIT_PACKS, formatUsd, FREE_RENDERS, INVITE_RENDERS } from "@retrofit/core";
+import { BRAND, CREDIT_PACKS, formatUsd, FREE_RENDERS, INVITE_RENDERS, MAX_SWAPS_PER_PICTURE } from "@retrofit/core";
 import { ContactEmail, LegalPage, operatorName, type LegalSection } from "@/components/legal/legal-page";
 import { REVIEW_HOURS } from "@/lib/reports";
 
 export const metadata: Metadata = { title: `Terms · ${BRAND.name}` };
 
-const packs = CREDIT_PACKS.map((p) => `${p.label}: ${p.credits} swaps for ${formatUsd(p.priceCents)}`).join("; ");
+const packs = CREDIT_PACKS.map((p) => `${p.label}: ${p.credits} pictures for ${formatUsd(p.priceCents)}`).join("; ");
 
 const sections: LegalSection[] = [
   {
@@ -15,7 +15,7 @@ const sections: LegalSection[] = [
     body: (
       <p>
         {BRAND.name} lets you take a photo of a room, a car, yourself or something else, pick parts to swap, and see an
-        AI-made picture of your photo with those parts changed (a &ldquo;swap&rdquo;). {BRAND.name} is run by {operatorName}{" "}
+        AI-made picture of your photo with those parts changed (a &ldquo;picture&rdquo;). {BRAND.name} is run by {operatorName}{" "}
         (&ldquo;we&rdquo;, &ldquo;us&rdquo;). By using it you agree to these terms.
       </p>
     ),
@@ -45,7 +45,7 @@ const sections: LegalSection[] = [
           <li>Nothing illegal, hateful, or meant to deceive or harass someone.</li>
         </ul>
         <p>
-          We never change a person&rsquo;s face or body shape on purpose. A safety filter may block a swap. We may remove
+          We never change a person&rsquo;s face or body shape on purpose. A safety filter may block a picture. We may remove
           content or close accounts that break these rules.
         </p>
       </>
@@ -53,11 +53,11 @@ const sections: LegalSection[] = [
   },
   {
     id: "renders",
-    title: "What a swap is, and is not",
+    title: "What our pictures are, and are not",
     body: (
       <>
         <p>
-          A swap is a picture made by AI to give you an idea of how something could look. It is not a photo of the real
+          Every picture we make is made by AI to give you an idea of how something could look. It is not a photo of the real
           product and may get colour, size, fit or detail wrong.
         </p>
         <p>
@@ -69,24 +69,25 @@ const sections: LegalSection[] = [
   },
   {
     id: "payments",
-    title: "Swaps, payments and no refunds",
+    title: "Pictures, payments and no refunds",
     body: (
       <ul>
         <li>
-          Every new account gets {FREE_RENDERS} free swap. After that you buy packs ({packs}). Each swap uses one. Looking
-          at your photo and picking parts is free.
+          Every new account gets {FREE_RENDERS} free picture. After that you buy packs ({packs}). Each new picture uses one, and
+          one picture can change up to {MAX_SWAPS_PER_PICTURE} items at once (each item is a &ldquo;swap&rdquo;). Looking at
+          your photo and picking parts is free.
         </li>
         <li>Payments are handled by Stripe. We never see or store your card number.</li>
-        <li>Swaps you bought don&rsquo;t expire.</li>
-        <li>If a swap fails or the safety filter blocks it, you get that swap back automatically.</li>
+        <li>Pictures you bought don&rsquo;t expire.</li>
+        <li>If a picture fails or the safety filter blocks it, you get that picture back automatically.</li>
         <li>
           <strong>All sales are final.</strong> We don&rsquo;t give refunds for packs you bought, used or not, except where
-          the law requires it. Try your free swap first to see if {BRAND.name} is right for you.
+          the law requires it. Try your free picture first to see if {BRAND.name} is right for you.
         </li>
-        <li>If a payment is reversed or disputed, the swaps it bought are removed from your account.</li>
+        <li>If a payment is reversed or disputed, the pictures it bought are removed from your account.</li>
         <li>
-          Invites: when a new account you invited buys its first pack, you each get {INVITE_RENDERS} free swaps. Only new
-          accounts count. We may remove swaps gained by gaming this.
+          Invites: when a new account you invited buys its first pack, you each get {INVITE_RENDERS} free pictures. Only new
+          accounts count. We may remove pictures gained by gaming this.
         </li>
       </ul>
     ),
@@ -102,7 +103,7 @@ const sections: LegalSection[] = [
         </p>
         <p>
           Most products come from a live search of online stores. We show the price the store listed when we found it,
-          and we don&rsquo;t check every listing. A swap shows how the product might look in your photo; the real
+          and we don&rsquo;t check every listing. A picture shows how the product might look in your photo; the real
           product can look different.
         </p>
         <p>We may earn a commission when you buy through our links. It doesn&rsquo;t change your price.</p>
@@ -141,11 +142,11 @@ const sections: LegalSection[] = [
     body: (
       <>
         <p>
-          Your photos stay yours. You let us store and process them, and the swaps made from them, so we can run the
-          service for you (for example, to show them in My swaps and on share links you make).
+          Your photos stay yours. You let us store and process them, and the pictures made from them, so we can run the
+          service for you (for example, to show them in My pictures and on share links you make).
         </p>
         <p>
-          You may use your swaps for your own purposes, including posting them. If you post one, don&rsquo;t hide that it
+          You may use your pictures for your own purposes, including posting them. If you post one, don&rsquo;t hide that it
           was made by AI. If you send a share link to the gallery, you let us show it on our home page until you take it
           out. The app, its design and its code belong to us.
         </p>
@@ -157,7 +158,7 @@ const sections: LegalSection[] = [
     title: "Things you may not do",
     body: (
       <ul>
-        <li>Try to get around limits, for example by making extra accounts for free swaps.</li>
+        <li>Try to get around limits, for example by making extra accounts for free pictures.</li>
         <li>Copy, scrape or resell the service, or try to break or overload it.</li>
         <li>Use it to make pictures that mislead people about a real person.</li>
       </ul>
@@ -170,7 +171,7 @@ const sections: LegalSection[] = [
       <>
         <p>
           We work hard to keep the service running, but we provide it &ldquo;as is&rdquo;, without promises that it will
-          always work or that swaps will be accurate.
+          always work or that pictures will be accurate.
         </p>
         <p>
           As far as the law allows, we are not responsible for indirect losses, and our total responsibility to you is
@@ -185,7 +186,7 @@ const sections: LegalSection[] = [
     body: (
       <p>
         We may change these terms. If a change matters, we will tell you on the site or by email before it applies. You can
-        stop using the service at any time and close your account from the account menu. Swaps you haven&rsquo;t used
+        stop using the service at any time and close your account from the account menu. Pictures you haven&rsquo;t used
         are lost when you do.
       </p>
     ),

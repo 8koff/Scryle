@@ -73,7 +73,7 @@ export function MyRenders() {
   if (me.status === "signed-out") {
     return (
       <div className="flex flex-col items-start gap-5">
-        <p className="max-w-md text-[17px] text-muted">Sign in to see every swap you have made. They stay in your account.</p>
+        <p className="max-w-md text-[17px] text-muted">Sign in to see every picture you have made. They stay in your account.</p>
         <button type="button" onClick={() => setSigningIn(true)} className={primary}>
           Sign in
         </button>
@@ -86,7 +86,7 @@ export function MyRenders() {
   if (!loaded.renders.length) {
     return (
       <div className="flex flex-col items-start gap-5">
-        <p className="max-w-md text-[17px] text-muted">No swaps yet. Take a photo, pick a swap, and it shows up here.</p>
+        <p className="max-w-md text-[17px] text-muted">No pictures yet. Take a photo, pick a swap, and it shows up here.</p>
         <Link href="/#categories" className={primary}>
           Take a photo
         </Link>

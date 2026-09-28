@@ -107,10 +107,10 @@ export async function handleShare(input: unknown, deps: ShareDeps): Promise<Resu
 
   const job = await deps.status(jobId);
   const afterUrl = job.images?.[0];
-  if (job.status !== "completed" || !afterUrl) return { ok: false, status: 409, error: "That swap isn't finished." };
+  if (job.status !== "completed" || !afterUrl) return { ok: false, status: 409, error: "That picture isn't finished." };
   if (!isTrustedResultUrl(afterUrl)) {
     console.error("[share] unexpected result host", afterUrl);
-    return { ok: false, status: 502, error: "Couldn't load the swap." };
+    return { ok: false, status: 502, error: "Couldn't load the picture." };
   }
 
   return { ok: true, beforeUrl: claim.photoUrl, afterUrl, aspect: claim.width / claim.height };

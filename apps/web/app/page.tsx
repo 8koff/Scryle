@@ -9,6 +9,7 @@ import { Hero } from "@/components/home/hero";
 import { HowItWorks } from "@/components/home/how-it-works";
 import { Pricing } from "@/components/home/pricing";
 import { SwapWall } from "@/components/home/swap-wall";
+import { TryOn } from "@/components/home/try-on";
 
 const CONTAINER = "mx-auto w-full max-w-6xl px-4 sm:px-6";
 
@@ -44,6 +45,9 @@ export default function Home() {
         <div className="w-full">
           <Hero />
         </div>
+        <div className={`${CONTAINER} pt-20 sm:pt-28`}>
+          <TryOn />
+        </div>
         <div className={`${CONTAINER} py-20 sm:py-28`}>
           <SwapWall />
         </div>
@@ -62,7 +66,7 @@ export default function Home() {
       <footer className="border-t border-line">
         <div className={`${CONTAINER} flex flex-col gap-2 py-8 text-[13px] text-muted sm:flex-row sm:justify-between`}>
           <p>
-            © {new Date().getFullYear()} {BRAND.name}. Swaps made with Higgsfield.
+            © {new Date().getFullYear()} {BRAND.name}. Pictures made with Higgsfield.
           </p>
           <p>We may earn a commission when you buy through links on this site.</p>
           <nav aria-label="Legal" className="flex gap-4">

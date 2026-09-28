@@ -12,6 +12,6 @@ export async function GET(request: Request) {
     return Response.json(body, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("[credits] balance failed", error);
-    return Response.json({ success: false, error: "Couldn't load your swaps. Please try again." }, { status: 502 });
+    return Response.json({ success: false, error: "Couldn't load your pictures. Please try again." }, { status: 502 });
   }
 }

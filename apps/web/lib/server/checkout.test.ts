@@ -43,7 +43,7 @@ describe("checkoutParams", () => {
   it("tells the buyer on Stripe's page that all sales are final", () => {
     const params = checkoutParams({ packId: "starter", user, origin: "https://x", returnTo: "/" });
     expect(params.custom_text?.submit).toMatchObject({ message: expect.stringMatching(/All sales are final/) });
-    expect(params.line_items?.[0]?.price_data?.product_data?.name).toBe("Scryle Starter: 25 swaps");
+    expect(params.line_items?.[0]?.price_data?.product_data?.name).toBe("Scryle Starter: 25 pictures");
   });
 
   it("rejects unknown packs", () => {

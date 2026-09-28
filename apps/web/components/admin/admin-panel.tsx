@@ -104,9 +104,9 @@ export function AdminPanel() {
   const cards = loaded.data[tab];
   const numbers = [
     { label: "AI spend today", value: usd(stats.spentTodayUsd) },
-    { label: "Swaps, 7 days", value: String(stats.renders7d) },
+    { label: "Pictures, 7 days", value: String(stats.renders7d) },
     { label: "Packs sold, 7 days", value: String(stats.purchases7d) },
-    { label: "Swaps sold, 7 days", value: String(stats.creditsSold7d) },
+    { label: "Pictures sold, 7 days", value: String(stats.creditsSold7d) },
   ];
 
   return (

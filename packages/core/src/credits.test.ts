@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CREDIT_PACKS, creditPack, formatUsd, FREE_RENDERS, isCreditPackId, packMargin } from "./credits";
+import { CREDIT_PACKS, creditPack, formatUsd, FREE_RENDERS, isCreditPackId, packMargin, packSavingPercent } from "./credits";
 
 describe("credit packs", () => {
   it("gives every new account exactly one free render", () => {
@@ -26,6 +26,12 @@ describe("credit packs", () => {
     for (const pack of CREDIT_PACKS) {
       expect(packMargin(pack, 4)).toBeGreaterThanOrEqual(0.6);
     }
+  });
+});
+
+describe("packSavingPercent", () => {
+  it("rounds the saving down against the smallest pack", () => {
+    expect(CREDIT_PACKS.map(packSavingPercent)).toEqual([0, 16, 33]);
   });
 });
 

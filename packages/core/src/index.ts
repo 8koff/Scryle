@@ -11,5 +11,15 @@ export { buildEditPrompt, type EditPromptInput, type Swap } from "./render/promp
 export { buildRenderPlan, type RenderPlan, type Selection } from "./render/plan";
 export { nearestAspectRatio } from "./render/aspect";
 
-export { CREDIT_PACKS, creditPack, FREE_RENDERS, formatUsd, INVITE_RENDERS, isCreditPackId, packMargin } from "./credits";
+export {
+  CREDIT_PACKS,
+  creditPack,
+  FREE_RENDERS,
+  formatUsd,
+  INVITE_RENDERS,
+  isCreditPackId,
+  MAX_SWAPS_PER_PICTURE,
+  packMargin,
+  packSavingPercent,
+} from "./credits";
 export type { CreditPack, CreditPackId } from "./credits";

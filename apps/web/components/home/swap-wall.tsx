@@ -4,6 +4,8 @@ import { CompareSlider } from "@/components/ui/compare-slider";
 import { DEMO } from "@/lib/demo";
 import roomMakeoverAfter from "@/public/demo/room-makeover-after.jpg";
 import roomMakeoverBefore from "@/public/demo/room-makeover-before.jpg";
+import wallWomanAfter from "@/public/demo/wall-woman-after.jpg";
+import wallWomanBefore from "@/public/demo/wall-woman-before.jpg";
 
 type Example = {
   category: string;
@@ -31,14 +33,14 @@ const ROW_ONE: Example[] = [
   },
   {
     category: "Clothing",
-    from: "Grey hoodie",
-    to: "Leather bomber",
-    before: DEMO.person.before,
-    after: DEMO.person.after,
-    photoAspect: DEMO.person.aspect,
-    focus: { x: 0.5, y: 0.3 },
-    beforeAlt: "A person in a grey hoodie",
-    afterAlt: "The same person in a black leather bomber jacket",
+    from: "Loungewear",
+    to: "Full outfit",
+    before: wallWomanBefore,
+    after: wallWomanAfter,
+    photoAspect: 1744 / 2336,
+    focus: { x: 0.5, y: 0.2 },
+    beforeAlt: "A woman with curly red hair in a grey sweatshirt, black leggings and white sneakers",
+    afterAlt: "The same woman in a cropped black leather jacket, a white top, cream wide-leg trousers and black loafers",
   },
   {
     category: "Clothing",

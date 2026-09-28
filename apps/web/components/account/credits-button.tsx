@@ -26,9 +26,9 @@ export function CreditsButton({ current, onSignIn, onBuy }: CreditsButtonProps) 
       type="button"
       onClick={onBuy}
       className={`${BASE} tabular-nums`}
-      aria-label={n === null ? "Your swaps" : `${n} swaps left. Get more`}
+      aria-label={n === null ? "Your pictures" : `${n} pictures left. Get more`}
     >
-      {n === null ? "…" : `${n} swap${n === 1 ? "" : "s"}`}
+      {n === null ? "…" : `${n} picture${n === 1 ? "" : "s"}`}
     </button>
   );
 }

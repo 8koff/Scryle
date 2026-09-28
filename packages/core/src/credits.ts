@@ -6,6 +6,9 @@
 /** Every new account gets this many renders free. */
 export const FREE_RENDERS = 1;
 
+/** How many items (swaps) one picture can change at once. The server and the studio both check it. */
+export const MAX_SWAPS_PER_PICTURE = 6;
+
 /** Renders each person gets when an invited friend buys their first pack. */
 export const INVITE_RENDERS = 2;
 
@@ -28,6 +31,16 @@ export function isCreditPackId(id: string): id is CreditPackId {
 
 export function creditPack(id: string): CreditPack | undefined {
   return CREDIT_PACKS.find((p) => p.id === id);
+}
+
+/**
+ * How much cheaper each swap is than in the smallest pack, in whole percent. Rounded down so
+ * the pricing never overstates the saving. 0 for the smallest pack itself.
+ */
+export function packSavingPercent(pack: CreditPack): number {
+  const base = CREDIT_PACKS[0];
+  const saving = 1 - pack.priceCents / pack.credits / (base.priceCents / base.credits);
+  return Math.max(0, Math.floor(saving * 100 + 1e-9));
 }
 
 /** Stripe card fee: 2.9% + 30¢. */
