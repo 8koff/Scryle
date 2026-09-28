@@ -4,6 +4,8 @@ import { CompareSlider } from "@/components/ui/compare-slider";
 import { DEMO } from "@/lib/demo";
 import roomMakeoverAfter from "@/public/demo/room-makeover-after.jpg";
 import roomMakeoverBefore from "@/public/demo/room-makeover-before.jpg";
+import wallWomanAfter from "@/public/demo/wall-woman-after.jpg";
+import wallWomanBefore from "@/public/demo/wall-woman-before.jpg";
 
 type Example = {
   category: string;
@@ -31,25 +33,25 @@ const ROW_ONE: Example[] = [
   },
   {
     category: "Clothing",
-    from: "Grey hoodie",
-    to: "Leather bomber",
-    before: DEMO.person.before,
-    after: DEMO.person.after,
-    photoAspect: DEMO.person.aspect,
-    focus: { x: 0.5, y: 0.3 },
-    beforeAlt: "A person in a grey hoodie",
-    afterAlt: "The same person in a black leather bomber jacket",
+    from: "Loungewear",
+    to: "Going out",
+    before: wallWomanBefore,
+    after: wallWomanAfter,
+    photoAspect: 1744 / 2336,
+    focus: { x: 0.5, y: 0.2 },
+    beforeAlt: "A woman with curly red hair in a grey sweatshirt, black leggings and white sneakers",
+    afterAlt: "The same woman in a fitted black square-neck top, a champagne satin midi skirt and black heeled ankle boots",
   },
   {
     category: "Clothing",
-    from: "Hoodie, jeans, sneakers",
-    to: "Full outfit",
+    from: "Hoodie",
+    to: "Party fit",
     before: DEMO.person.before,
     after: DEMO.person.outfit,
     photoAspect: DEMO.person.aspect,
     focus: { x: 0.5, y: 0.5 },
     beforeAlt: "A person in a grey hoodie, jeans and white sneakers",
-    afterAlt: "The same person in a leather bomber, olive cargo trousers and retro sneakers",
+    afterAlt: "The same person in an open black and cream crochet shirt over a white tank top, a silver chain, baggy light jeans and black and white sneakers",
   },
 ];
 

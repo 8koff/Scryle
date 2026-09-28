@@ -50,13 +50,13 @@ const DEMOS: Demo[] = [
   {
     pack: "clothing",
     label: "Clothing",
-    examples: "Coats, trousers, shoes",
+    examples: "Dresses, tops, shoes",
     cta: "Scan yourself",
     ...HERO_DEMO.person,
     photoAspect: HERO_DEMO.person.aspect,
     focus: { x: 0.5, y: 0.3 },
-    beforeAlt: "A person in a grey hoodie, jeans and white sneakers",
-    afterAlt: "The same person in a camel overcoat, black roll-neck, charcoal trousers and Chelsea boots",
+    beforeAlt: "A woman in a white t-shirt, light blue jeans and white sneakers",
+    afterAlt: "The same woman in a black satin slip dress, strappy heels and a gold bracelet",
   },
 ];
 

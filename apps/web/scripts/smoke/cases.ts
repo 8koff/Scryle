@@ -127,6 +127,41 @@ const heroHardwoodRoom: ImageSource = {
 
 const PERSON_LOCKS = ["face", "hair", "body shape and proportions", "skin tone", "pose", "hands", "background"];
 
+/** Landing-page try-on demo: one woman, several outfits. Plain start so each change is clear. */
+const woman: ImageSource = {
+  key: "woman",
+  generate: {
+    aspect: "3:4",
+    prompt:
+      "Full-body phone photo of a young woman standing in front of a plain light wall in a bright apartment, facing the camera, " +
+      "wearing a plain white t-shirt, light blue straight jeans and white canvas sneakers, long dark hair down, arms relaxed, " +
+      "natural window daylight, realistic, candid, not a fashion shoot",
+  },
+};
+
+/** "More swaps" wall: a second woman, so the wall has one man and one woman. */
+const womanTwo: ImageSource = {
+  key: "woman-two",
+  generate: {
+    aspect: "3:4",
+    prompt:
+      "Full-body phone photo of a young woman with curly auburn hair standing in a bright apartment hallway, facing the camera, " +
+      "wearing an oversized grey sweatshirt, black leggings and white sneakers, arms relaxed, natural daylight, realistic, candid",
+  },
+};
+
+const tryOn = (id: string, title: string, swaps: SmokeCase["swaps"]): SmokeCase => ({
+  id,
+  pack: "clothing",
+  title,
+  subject: "a woman standing in her apartment",
+  scene: woman,
+  swaps,
+  locks: PERSON_LOCKS,
+});
+
+const words = (part: string, product: string) => ({ part, product, hasImage: false, image: null });
+
 export const SMOKE_CASES: SmokeCase[] = [
   {
     id: "clothing-jacket",
@@ -332,5 +367,50 @@ export const SMOKE_CASES: SmokeCase[] = [
       "camera angle and framing",
       "daylight direction",
     ],
+  },
+  tryOn("tryon-date", "Try-on: date night", [
+    words("white t-shirt and jeans", "a black satin midi slip dress with thin straps"),
+    words("white sneakers", "black strappy heeled sandals"),
+    words("bare wrists", "a small gold bracelet"),
+  ]),
+  tryOn("tryon-summer", "Try-on: summer day", [
+    words("white t-shirt and jeans", "a flowy yellow floral linen sundress, knee length"),
+    words("white sneakers", "tan leather flat sandals"),
+  ]),
+  tryOn("tryon-office", "Try-on: smart casual", [
+    words("white t-shirt", "an oversized beige blazer over a white fitted top"),
+    words("light blue straight jeans", "black wide-leg tailored trousers"),
+    words("white sneakers", "black leather loafers"),
+  ]),
+  tryOn("tryon-cosy", "Try-on: cosy autumn", [
+    words("white t-shirt", "a chunky cream cable-knit cardigan over a brown top"),
+    words("light blue straight jeans", "a pleated chocolate-brown midi skirt"),
+    words("white sneakers", "tall brown leather knee boots"),
+  ]),
+  {
+    id: "wall-woman",
+    pack: "clothing",
+    title: "Wall: second woman, going-out outfit",
+    subject: "a woman standing in a hallway",
+    scene: womanTwo,
+    swaps: [
+      words("grey sweatshirt", "a fitted black long-sleeve square-neck top"),
+      words("black leggings", "a champagne satin midi skirt"),
+      words("white sneakers", "black leather heeled ankle boots"),
+    ],
+    locks: PERSON_LOCKS,
+  },
+  {
+    id: "wall-man-party",
+    pack: "clothing",
+    title: "Wall: man, college party look (2026)",
+    subject: "a person standing in a hallway",
+    scene: person,
+    swaps: [
+      words("grey hoodie", "an open boxy short-sleeve black and cream crochet shirt over a white ribbed tank top, with a thin silver chain necklace"),
+      words("blue jeans", "baggy light-wash jeans with a relaxed wide leg"),
+      words("white sneakers", "chunky black and white retro sneakers"),
+    ],
+    locks: PERSON_LOCKS,
   },
 ];
