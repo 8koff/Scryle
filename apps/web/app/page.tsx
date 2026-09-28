@@ -31,12 +31,6 @@ export default function Home() {
             </Link>
             <CartButton />
             <HeaderAccount />
-            <Link
-              href="/scan/clothing"
-              className="hidden h-10 items-center whitespace-nowrap rounded-full bg-fg px-4 font-semibold text-bg transition-transform duration-150 ease-out active:scale-[0.97] sm:inline-flex"
-            >
-              Get started
-            </Link>
           </nav>
         </div>
       </header>

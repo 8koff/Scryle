@@ -123,7 +123,7 @@ export function SwapWall() {
           <Tile key={`${e.from}-${e.to}`} example={e} />
         ))}
         <Link
-          href="/scan/anything"
+          href="/app?pack=anything"
           className="group flex h-[340px] flex-col justify-between rounded-[20px] bg-fg p-7 text-bg transition-transform active:scale-[0.99] sm:h-[400px]"
         >
           <span className="text-[14px] font-semibold text-bg/60">Anything else</span>

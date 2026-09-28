@@ -1,5 +1,6 @@
 "use client";
 
+import { Check } from "lucide-react";
 import type { Chosen } from "@/lib/build/remix";
 import type { StudioPart } from "@/lib/build/parts";
 
@@ -18,14 +19,21 @@ export function PicksTray({ parts, chosen, onShow, onRemove }: PicksTrayProps) {
   return (
     <ul aria-label="Your picks" className="-mx-4 mb-3 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] lg:mx-0 lg:flex-wrap lg:px-0">
       {picks.map(({ part, pick }) => (
-        <li key={part.id} className="flex h-11 shrink-0 items-center gap-2 rounded-full border border-line bg-surface pl-1.5 pr-1">
+        <li
+          key={`${part.id}-${pick.label}`}
+          className="flex h-11 shrink-0 items-center gap-2 rounded-full border border-line bg-surface pl-1.5 pr-1 motion-safe:animate-[sticker-in_280ms_var(--ease-out)]"
+        >
           <button type="button" onClick={() => onShow(part.id)} className="flex min-w-0 items-center gap-2" title={pick.label}>
             <span className="grid size-8 shrink-0 place-items-center overflow-hidden rounded-full bg-white">
               {pick.image ? (
                 // eslint-disable-next-line @next/next/no-img-element -- a small product thumbnail
                 <img src={pick.image} alt="" className="size-full object-contain p-0.5" />
+              ) : pick.swatch ? (
+                <span className="size-full" style={{ backgroundColor: pick.swatch }} />
               ) : (
-                <span className="size-full" style={{ backgroundColor: pick.swatch ?? "var(--color-surface-2)" }} />
+                <span className="grid size-full place-items-center bg-accent text-on-accent">
+                  <Check aria-hidden className="size-4" strokeWidth={3} />
+                </span>
               )}
             </span>
             <span className="max-w-32 truncate text-[13px] font-semibold">

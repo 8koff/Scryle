@@ -174,3 +174,38 @@ p {
     opacity: 0;
   }
 }
+
+/* The account menu drops in from the avatar. */
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+}
+
+/* Studio: part boxes arrive one by one, picks land on the photo like stickers, small counts pop. */
+@keyframes box-in {
+  from {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+}
+@keyframes sticker-in {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  70% {
+    transform: scale(1.08);
+  }
+}
+@keyframes pop {
+  from {
+    transform: scale(0.85);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}

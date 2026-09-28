@@ -16,7 +16,7 @@ export function RemixButton({ shareId, pack, selections }: RemixButtonProps) {
   const router = useRouter();
   const go = () => {
     saveRemix(window.sessionStorage, { pack, selections, from: shareId });
-    router.push(`/scan/${pack}`);
+    router.push(`/app?pack=${pack}`);
   };
   return (
     <button

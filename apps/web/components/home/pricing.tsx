@@ -21,7 +21,7 @@ export function Pricing() {
             {FREE_RENDERS} swap when you sign in with your email. Browsing and scanning are always free.
           </p>
           <Link
-            href="/scan/room"
+            href="/app?pack=room"
             className="mt-auto inline-flex h-11 w-max items-center rounded-full bg-on-accent px-5 text-[15px] font-semibold text-accent transition-transform active:scale-[0.97]"
           >
             Try it free

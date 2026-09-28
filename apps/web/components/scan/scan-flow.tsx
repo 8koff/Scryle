@@ -98,7 +98,7 @@ export function ScanFlow({ pack }: { pack: Pack }) {
             const { photoUrl, width, height, scene, token } = step.state.result;
             const preselect = takeRemix(window.sessionStorage, pack.id);
             const build = browserBuildStore().create({ pack: pack.id, photoUrl, width, height, scene, token, preselect });
-            router.push(`/build/${build.id}`);
+            router.push(`/app/build/${build.id}`);
           }}
         />
       )}
