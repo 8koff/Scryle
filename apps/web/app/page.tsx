@@ -9,6 +9,7 @@ import { Hero } from "@/components/home/hero";
 import { HowItWorks } from "@/components/home/how-it-works";
 import { Pricing } from "@/components/home/pricing";
 import { SwapWall } from "@/components/home/swap-wall";
+import { TryOn } from "@/components/home/try-on";
 
 const CONTAINER = "mx-auto w-full max-w-6xl px-4 sm:px-6";
 
@@ -43,6 +44,9 @@ export default function Home() {
       <main className="flex flex-1 flex-col">
         <div className="w-full">
           <Hero />
+        </div>
+        <div className={`${CONTAINER} pt-20 sm:pt-28`}>
+          <TryOn />
         </div>
         <div className={`${CONTAINER} py-20 sm:py-28`}>
           <SwapWall />
