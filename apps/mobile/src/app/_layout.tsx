@@ -9,6 +9,7 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useAccount, useSessionRefresh } from "@/lib/use-account";
 import { colors, fonts } from "@/theme";
 
@@ -43,7 +44,8 @@ export default function RootLayout() {
 
   const isSignedIn = account.status === "signed-in";
   return (
-    <>
+    // Gesture root: the before/after sliders use react-native-gesture-handler.
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg }}>
       <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
         <Stack.Protected guard={isSignedIn}>
@@ -55,6 +57,6 @@ export default function RootLayout() {
           <Stack.Screen name="sign-in" />
         </Stack.Protected>
       </Stack>
-    </>
+    </GestureHandlerRootView>
   );
 }

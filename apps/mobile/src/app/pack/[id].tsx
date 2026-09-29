@@ -4,6 +4,7 @@ import { router, Stack, useLocalSearchParams } from "expo-router";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/button";
+import { CompareSlider } from "@/components/compare-slider";
 import { CAMERA_SOON, PACK_COVERS } from "@/lib/packs";
 import { colors, display, fonts, radius, space } from "@/theme";
 
@@ -25,7 +26,19 @@ export default function PackPage() {
         </ScrollView>
 
         <View style={styles.padded}>
-          <Image source={cover.image} style={styles.hero} contentFit="cover" />
+          {cover.after ? (
+            <CompareSlider
+              key={pack.id}
+              before={cover.before}
+              after={cover.after}
+              dragAnywhere
+              hint
+              style={styles.hero}
+              accessibilityLabel={`${pack.label} example. Left: before. Right: AI edit.`}
+            />
+          ) : (
+            <Image source={cover.before} style={styles.hero} contentFit="cover" />
+          )}
           <Text style={styles.title}>{pack.tagline}</Text>
           {pack.capture.requireAdult ? (
             <Text style={styles.rule}>Live camera only. You must be 18 or older. Swimwear and underwear aren&apos;t allowed.</Text>
@@ -96,7 +109,7 @@ const styles = StyleSheet.create({
   switchTextOn: { color: colors.onAccent },
   hero: {
     width: "100%",
-    aspectRatio: 4 / 3,
+    aspectRatio: 4 / 5,
     borderRadius: radius.lg,
     backgroundColor: colors.surface2,
     borderWidth: StyleSheet.hairlineWidth,

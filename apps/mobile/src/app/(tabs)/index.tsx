@@ -1,7 +1,10 @@
 import { PACKS, type Pack } from "@retrofit/core";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { FlatList as NativeFlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+// The gesture-aware list, so dragging a card's slider handle doesn't also swipe the list.
+import { FlatList } from "react-native-gesture-handler";
+import { CompareSlider } from "@/components/compare-slider";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { InviteCard } from "@/components/invite-card";
 import { SwapThumb } from "@/components/swap-thumb";
@@ -40,7 +43,7 @@ export default function Home() {
           horizontal
           data={PACKS}
           keyExtractor={(p) => p.id}
-          renderItem={({ item }) => <CategoryCard pack={item} width={cardWidth} />}
+          renderItem={({ item, index }) => <CategoryCard pack={item} width={cardWidth} isFirst={index === 0} />}
           showsHorizontalScrollIndicator={false}
           snapToInterval={cardWidth + space.md}
           decelerationRate="fast"
@@ -62,7 +65,7 @@ export default function Home() {
             ) : null}
           </View>
           {recent.length ? (
-            <FlatList
+            <NativeFlatList
               horizontal
               data={recent}
               keyExtractor={(r) => r.jobId}
@@ -90,7 +93,7 @@ export default function Home() {
   );
 }
 
-function CategoryCard({ pack, width }: { pack: Pack; width: number }) {
+function CategoryCard({ pack, width, isFirst }: { pack: Pack; width: number; isFirst: boolean }) {
   const cover = PACK_COVERS[pack.id];
   return (
     <Pressable
@@ -99,7 +102,17 @@ function CategoryCard({ pack, width }: { pack: Pack; width: number }) {
       onPress={() => router.push({ pathname: "/pack/[id]", params: { id: pack.id } })}
       style={({ pressed }) => [styles.card, { width }, pressed && styles.cardPressed]}
     >
-      <Image source={cover.image} style={[styles.cardImage, { height: width * 1.1 }]} contentFit="cover" />
+      {cover.after ? (
+        <CompareSlider
+          before={cover.before}
+          after={cover.after}
+          hint={isFirst}
+          style={[styles.cardImage, { height: width * 1.1 }]}
+          accessibilityLabel={`${pack.label} example. Left: before. Right: AI edit.`}
+        />
+      ) : (
+        <Image source={cover.before} style={[styles.cardImage, { height: width * 1.1 }]} contentFit="cover" />
+      )}
       <View style={styles.cardText}>
         <Text style={styles.cardTitle}>{pack.label}</Text>
         <Text style={styles.cardBody}>{pack.tagline}</Text>
