@@ -10,9 +10,19 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { useAccount, useSessionRefresh } from "@/lib/use-account";
-import { colors } from "@/theme";
+import { colors, fonts } from "@/theme";
 
 void SplashScreen.preventAutoHideAsync();
+
+/** Pages above the tabs get the iPhone's back button and title bar. */
+const pageHeader = {
+  headerShown: true,
+  headerBackTitle: "Back",
+  headerTintColor: colors.fg,
+  headerStyle: { backgroundColor: colors.bg },
+  headerTitleStyle: { fontFamily: fonts.semibold },
+  headerShadowVisible: false,
+} as const;
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -37,7 +47,9 @@ export default function RootLayout() {
       <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
         <Stack.Protected guard={isSignedIn}>
-          <Stack.Screen name="index" />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="pack/[id]" options={pageHeader} />
+          <Stack.Screen name="swap/[id]" options={pageHeader} />
         </Stack.Protected>
         <Stack.Protected guard={!isSignedIn}>
           <Stack.Screen name="sign-in" />

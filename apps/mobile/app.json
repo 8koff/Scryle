@@ -50,9 +50,6 @@
           "backgroundColor": "#121110"
         }
       ]
-    ],
-    "experiments": {
-      "typedRoutes": true
-    }
+    ]
   }
 }
