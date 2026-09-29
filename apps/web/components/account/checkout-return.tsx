@@ -35,9 +35,9 @@ export function CheckoutReturn() {
         account.setCredits(body.data.credits);
         const { added, bonus } = body.data;
         const invite = bonus ? ` Plus ${bonus} free from your invite.` : "";
-        setNotice(added ? `Payment done. ${added} swaps added.${invite}` : "Payment done. Your swaps are ready.");
+        setNotice(added ? `Payment done. ${added} pictures added.${invite}` : "Payment done. Your pictures are ready.");
       } catch {
-        setNotice("Payment done. Your swaps will show up in a moment.");
+        setNotice("Payment done. Your pictures will show up in a moment.");
       }
     })();
   }, [signedIn]);

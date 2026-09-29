@@ -96,7 +96,7 @@ export function AccountPage() {
         <p className="mt-1 text-[13px] text-muted">This is the address you sign in with. It can&apos;t be changed here.</p>
       </Row>
 
-      <Row label="Swaps">
+      <Row label="Pictures">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="pt-1 text-[15px]">
             <span className="text-[1.4rem] font-semibold tabular-nums">{me.credits ?? "…"}</span> left

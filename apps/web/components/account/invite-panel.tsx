@@ -47,7 +47,7 @@ export function InvitePanel() {
       <h3 id="invite-title" className="text-[15px] font-semibold">
         Invite a friend
       </h3>
-      <p className="mt-1 text-[13px] text-muted">When they buy their first pack, you both get {state.reward} free swaps.</p>
+      <p className="mt-1 text-[13px] text-muted">When they buy their first pack, you both get {state.reward} free pictures.</p>
       <div className="mt-3 flex gap-2">
         <input
           readOnly

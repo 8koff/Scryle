@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { getPack, type SceneAnalysis } from "@retrofit/core";
+import { getPack, MAX_SWAPS_PER_PICTURE, type SceneAnalysis } from "@retrofit/core";
 import { BuySheet } from "@/components/account/buy-sheet";
 import { ShopLook } from "@/components/shop/shop-look";
 import type { Account } from "@/lib/account/account-store";
@@ -34,8 +34,7 @@ const DONE = new Set(["completed", "failed", "nsfw", "canceled"]);
 const newId = () => Math.random().toString(36).slice(2, 10);
 /** Parts whose store products load straight after the scan; the rest load when opened (each new search costs one). */
 const AUTO_ROWS = 3;
-/** A render takes at most this many swaps (the server checks the same). */
-const MAX_PICKS = 6;
+const MAX_PICKS = MAX_SWAPS_PER_PICTURE;
 const FIT_LABELS: Record<Fit, string> = { women: "Women", men: "Men", any: "Any" };
 
 /** The fit the photo reader saw, as the starting filter for clothing searches. */
@@ -93,12 +92,12 @@ export function Studio({ id }: { id: string }) {
       if (stopped) return;
       if (++polls > MAX_POLLS) {
         stopped = true;
-        markFailed("The swap took too long. Please try again.");
-        setNotice("The swap took too long. Please try again.");
+        markFailed("The picture took too long. Please try again.");
+        setNotice("The picture took too long. Please try again.");
         return;
       }
       try {
-        const response = await fetch(`/api/swap/${jobId}?t=${encodeURIComponent(jobToken)}`, { cache: "no-store" });
+        const response = await fetch(`/api/render/${jobId}?t=${encodeURIComponent(jobToken)}`, { cache: "no-store" });
         const body = (await response.json()) as ApiResponse<RenderStatus>;
         if (stopped || !body.success || !DONE.has(body.data.status)) return; // try again next tick
         stopped = true;
@@ -112,14 +111,14 @@ export function Studio({ id }: { id: string }) {
                   ...v,
                   status: ok ? "done" : "failed",
                   imageUrl: ok ? imageUrl : undefined,
-                  error: ok ? undefined : status === "nsfw" ? "That swap was blocked by the safety filter." : "The swap failed. You weren't charged.",
+                  error: ok ? undefined : status === "nsfw" ? "That swap was blocked by the safety filter." : "The picture failed. You weren't charged.",
                 }
               : v,
           ),
         }));
         if (ok) setShownId(versionId);
         else void account.refreshCredits(); // the credit came back
-        if (!ok) setNotice(status === "nsfw" ? "That swap was blocked by the safety filter." : "The swap failed. Please try again.");
+        if (!ok) setNotice(status === "nsfw" ? "That swap was blocked by the safety filter." : "The picture failed. Please try again.");
       } catch {
         // Network hiccup: the next tick retries.
       }
@@ -136,10 +135,10 @@ export function Studio({ id }: { id: string }) {
     return (
       <div className="mx-auto flex max-w-md flex-1 flex-col items-center justify-center gap-4 px-6 py-16 text-center">
         <h1 className="display text-[2.4rem] font-semibold">This photo is closed</h1>
-        <p className="text-muted">A photo stays open for edits for one day. Your swaps are kept in My swaps, and you can open any of them again from there with Swap more.</p>
+        <p className="text-muted">A photo stays open for edits for one day. Your pictures are kept in My pictures, and you can open any of them again from there with Swap more.</p>
         <div className="mt-2 flex gap-3">
           <Link href="/app/renders" className="inline-flex h-12 items-center rounded-full bg-accent px-7 font-semibold text-on-accent">
-            My swaps
+            My pictures
           </Link>
           <Link href="/app" className="inline-flex h-12 items-center rounded-full px-5 font-semibold hover:bg-surface-2">
             New photo
@@ -222,7 +221,7 @@ export function Studio({ id }: { id: string }) {
 
     let started: ApiResponse<RenderStart>;
     try {
-      const response = await account.authFetch("/api/swap", {
+      const response = await account.authFetch("/api/render", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -289,7 +288,7 @@ export function Studio({ id }: { id: string }) {
               <p className="text-center text-[13px] text-muted">
                 Saved to{" "}
                 <Link href="/app/renders" className="font-semibold text-fg underline-offset-4 hover:underline">
-                  My swaps
+                  My pictures
                 </Link>
               </p>
             </>
@@ -414,8 +413,8 @@ export function Studio({ id }: { id: string }) {
 
 /** The small line under the render button: what this render costs you. */
 function costLine(me: Account): string {
-  if (me.status === "signed-out") return "Your first swap is free.";
+  if (me.status === "signed-out") return "Your first picture is free.";
   if (me.status !== "signed-in" || me.credits === null) return " ";
-  if (me.credits === 0) return "You're out of swaps.";
-  return `Uses 1 of your ${me.credits} swap${me.credits === 1 ? "" : "s"}.`;
+  if (me.credits === 0) return "You're out of pictures.";
+  return `Uses 1 of your ${me.credits} picture${me.credits === 1 ? "" : "s"}.`;
 }

@@ -14,13 +14,13 @@ import { useAccount } from "@/lib/account/use-account";
 
 const TABS = [
   { href: "/app", label: "Swap", icon: ScanLine },
-  { href: "/app/renders", label: "My swaps", icon: Images },
+  { href: "/app/renders", label: "My pictures", icon: Images },
 ] as const;
 
 const isActive = (href: string, path: string) => (href === "/app" ? path === "/app" || path.startsWith("/app/build") : path.startsWith(href));
 
 /**
- * The app's frame: a slim bar with the two places you work (Swap, My renders) and your account.
+ * The app's frame: a slim bar with the two places you work (Swap, My pictures) and your account.
  * On phones the two tabs sit at the bottom, in thumb reach, except in the studio, which has its own bottom bar.
  */
 export function AppShell({ children }: { children: ReactNode }) {

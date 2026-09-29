@@ -31,7 +31,7 @@ export function checkoutParams({
         price_data: {
           currency: "usd",
           unit_amount: pack.priceCents,
-          product_data: { name: `${BRAND.name} ${pack.label}: ${pack.credits} swaps` },
+          product_data: { name: `${BRAND.name} ${pack.label}: ${pack.credits} pictures` },
         },
       },
     ],
@@ -39,7 +39,7 @@ export function checkoutParams({
     ...(user.email ? { customer_email: user.email } : {}),
     metadata: { user_id: user.id, pack: pack.id },
     // Said again on Stripe's page, right above the pay button (see /terms#payments).
-    custom_text: { submit: { message: "All sales are final. Swaps you buy don't expire." } },
+    custom_text: { submit: { message: "All sales are final. Pictures you buy don't expire." } },
     success_url: `${back}?checkout=done&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: back,
   };

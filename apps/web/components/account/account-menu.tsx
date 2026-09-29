@@ -66,7 +66,7 @@ export function AccountMenu() {
               Account
             </Link>
             <Link href="/app/renders" onClick={() => setIsOpen(false)} className={item}>
-              My swaps
+              My pictures
             </Link>
             <button type="button" onClick={signOut} className={`${item} text-muted hover:text-fg`}>
               Sign out

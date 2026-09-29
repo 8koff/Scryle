@@ -87,7 +87,7 @@ function Greeting() {
         <p className="text-[14px] text-muted">
           {n === 0 ? (
             <>
-              You&apos;re out of swaps.{" "}
+              You&apos;re out of pictures.{" "}
               <button type="button" onClick={() => setIsBuying(true)} className="font-semibold text-accent-ink underline-offset-4 hover:underline">
                 Get more
               </button>

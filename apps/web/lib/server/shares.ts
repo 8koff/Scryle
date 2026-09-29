@@ -313,7 +313,7 @@ export async function handleCreateShare(input: unknown, deps: CreateShareDeps): 
   if (!checked.ok) return fail(checked.status, checked.error);
   const { claim, jobId } = input as { claim: { pack: PackId; width: number; height: number }; jobId: string };
 
-  if ((await deps.jobOwner(jobId)) !== deps.userId) return fail(403, "Only the person who made this swap can share it.");
+  if ((await deps.jobOwner(jobId)) !== deps.userId) return fail(403, "Only the person who made this picture can share it.");
 
   const existing = await deps.shares.findByJob(jobId);
   if (existing) return { status: 200, body: { success: true, data: { id: existing.id } } };
