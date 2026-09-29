@@ -1,6 +1,6 @@
-import type { PackId, SceneAnalysis } from "@retrofit/core";
+import type { PackId, SceneAnalysis, SelectionInput } from "@retrofit/core";
 
-export type SelectionInput = { partId: string; productId: string } | { partId: string; text: string };
+export type { SelectionInput };
 
 export type Version = {
   id: string;
