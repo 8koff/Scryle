@@ -6,7 +6,10 @@ export type Account =
   /** Supabase keys aren't set: renders will say accounts aren't ready. */
   | { status: "unavailable" }
   | { status: "signed-out" }
-  | { status: "signed-in"; email: string | undefined; credits: number | null };
+  | { status: "signed-in"; email: string | undefined; name: string | null; avatarUrl: string | null; credits: number | null };
+
+type Metadata = Record<string, unknown> | undefined;
+type SessionLike = { access_token: string; user: { email?: string; user_metadata?: Metadata } };
 
 type Listener = () => void;
 
@@ -16,6 +19,29 @@ const RETURN_TTL_MS = 60 * 60 * 1000;
 /** Supabase codes are 6 digits by default; the project setting allows up to 10. */
 const MIN_CODE_LENGTH = 6;
 export const MAX_CODE_LENGTH = 10;
+export const MAX_NAME_LENGTH = 50;
+/** Where people land after signing in with Google, unless a page asks to come back to itself. */
+export const APP_HOME = "/app";
+
+/**
+ * Only our own pages: a plain path, never another site (no "//", no scheme). The one query
+ * allowed is the app's category, so "/app?pack=room" comes back to Room.
+ */
+export function isOwnPath(path: string): boolean {
+  return /^\/[a-z0-9/_-]*(\?pack=[a-z]+)?$/i.test(path) && !path.includes("//");
+}
+
+const text = (value: unknown): string | null => (typeof value === "string" && value.trim() ? value.trim() : null);
+
+/** The name to show. The one the person typed wins, because Google rewrites its own on each sign-in. */
+export function accountName(meta: Metadata): string | null {
+  return text(meta?.display_name) ?? text(meta?.full_name) ?? text(meta?.name);
+}
+
+function accountAvatar(meta: Metadata): string | null {
+  const url = text(meta?.avatar_url) ?? text(meta?.picture);
+  return url?.startsWith("https://") ? url : null;
+}
 
 /** Where to go after the sign-in link lands on the home page. Read once, then cleared. */
 export function takeReturnPath(storage: Storage, now: number = Date.now()): string | null {
@@ -25,8 +51,7 @@ export function takeReturnPath(storage: Storage, now: number = Date.now()): stri
     storage.removeItem(RETURN_KEY);
     const { path, at } = JSON.parse(raw) as { path?: unknown; at?: unknown };
     if (typeof path !== "string" || typeof at !== "number" || now - at > RETURN_TTL_MS) return null;
-    // Only our own pages: a path, never another site.
-    return /^\/[a-z0-9/_-]*$/i.test(path) && !path.startsWith("//") ? path : null;
+    return isOwnPath(path) ? path : null;
   } catch {
     return null;
   }
@@ -34,7 +59,7 @@ export function takeReturnPath(storage: Storage, now: number = Date.now()): stri
 
 /**
  * Who is signed in and how many renders they have, shared by every component.
- * Sign-in is an emailed link (Supabase's standard email, no custom email setup needed).
+ * Sign-in is Google, with an emailed code as the backup.
  */
 export function createAccountStore(getClient: () => SupabaseClient | null, fetcher: typeof fetch = fetch) {
   let state: Account = { status: "loading" };
@@ -72,12 +97,13 @@ export function createAccountStore(getClient: () => SupabaseClient | null, fetch
     const client = getClient();
     if (!client) return set({ status: "unavailable" });
 
-    const apply = (session: { access_token: string; user: { email?: string } } | null) => {
+    const apply = (session: SessionLike | null) => {
       const wasSignedIn = Boolean(token);
       token = session?.access_token ?? null;
       if (!session) return set({ status: "signed-out" });
       const credits = state.status === "signed-in" ? state.credits : null;
-      set({ status: "signed-in", email: session.user.email, credits });
+      const meta = session.user.user_metadata;
+      set({ status: "signed-in", email: session.user.email, name: accountName(meta), avatarUrl: accountAvatar(meta), credits });
       if (!wasSignedIn) void refreshCredits();
     };
 
@@ -99,9 +125,10 @@ export function createAccountStore(getClient: () => SupabaseClient | null, fetch
     /**
      * Emails a sign-in code and link. The link opens our home page in a new tab; Supabase signs that
      * tab in and tells this tab too, and `takeReturnPath` sends the new tab back to `returnTo`.
+     * `name` (from the sign-up form) is saved on a new account.
      * Returns an error message, or null when sent.
      */
-    async sendLink(email: string, returnTo: string, origin: string, storage: Storage): Promise<string | null> {
+    async sendLink(email: string, returnTo: string, origin: string, storage: Storage, name?: string): Promise<string | null> {
       const client = getClient();
       if (!client) return "Sign-in isn't set up yet.";
       try {
@@ -109,11 +136,17 @@ export function createAccountStore(getClient: () => SupabaseClient | null, fetch
       } catch {
         // Storage blocked: the link still signs you in, on the home page.
       }
+      const cleanName = name?.trim().replace(/\s+/g, " ").slice(0, MAX_NAME_LENGTH);
       // The trailing slash matters: Supabase's allow list is `<site>/**`, and a bare origin
       // doesn't match it, so the link would fall back to the live Site URL.
       const { error } = await client.auth.signInWithOtp({
         email,
-        options: { shouldCreateUser: true, emailRedirectTo: `${origin.replace(/\/+$/, "")}/` },
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo: `${origin.replace(/\/+$/, "")}/`,
+          // Only used when this email is new: the name typed at sign-up becomes the account's name.
+          ...(cleanName ? { data: { display_name: cleanName } } : {}),
+        },
       });
       if (!error) return null;
       if (error.status === 429) return "Too many emails sent. Please wait a minute and try again.";
@@ -137,6 +170,36 @@ export function createAccountStore(getClient: () => SupabaseClient | null, fetch
       if (error.status === 429) return "Too many tries. Please wait a minute and try again.";
       if (!error.status) return "Couldn't reach sign-in. Check your connection and try again.";
       return "That code is wrong or too old. Check it, or send a new email.";
+    },
+
+    /**
+     * Goes to Google, which sends the person back to `returnPath` on this site, signed in.
+     * Returns an error message if the trip can't start (on success the page navigates away).
+     */
+    async signInWithGoogle(origin: string, returnPath: string): Promise<string | null> {
+      const client = getClient();
+      if (!client) return "Sign-in isn't set up yet.";
+      const path = isOwnPath(returnPath) ? returnPath : APP_HOME;
+      const { error } = await client.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${origin.replace(/\/+$/, "")}${path}` },
+      });
+      if (!error) return null;
+      if (!error.status) return "Couldn't reach sign-in. Check your connection and try again.";
+      return "Couldn't open Google sign-in. Please try again.";
+    },
+
+    /** Saves the name shown in the header. Returns an error message, or null. */
+    async updateName(name: string): Promise<string | null> {
+      const clean = name.trim();
+      if (!clean) return "Type a name.";
+      if (clean.length > MAX_NAME_LENGTH) return `Keep it to ${MAX_NAME_LENGTH} characters.`;
+      const client = getClient();
+      if (!client) return "Sign-in isn't set up yet.";
+      const { error } = await client.auth.updateUser({ data: { display_name: clean } });
+      if (!error) return null;
+      if (!error.status) return "Couldn't reach the server. Check your connection and try again.";
+      return "Couldn't save your name. Please try again.";
     },
 
     async signOut() {

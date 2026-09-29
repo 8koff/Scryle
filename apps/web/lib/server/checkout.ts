@@ -5,7 +5,7 @@ import type { CreditStore } from "./credits";
 
 /** Where Stripe may send people back to. Anything else goes home (no open redirects). */
 export function safeReturnPath(path: string | undefined): string {
-  return path && /^\/(build\/[a-z0-9]{1,20}|renders)?$/.test(path) ? path : "/";
+  return path && /^\/(app(\/(build\/[a-z0-9]{1,20}|renders|account))?)?$/.test(path) ? path : "/";
 }
 
 /** One Checkout Session for one credit pack. Prices come from our list, never the browser. */
