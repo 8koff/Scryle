@@ -53,7 +53,7 @@ export function DeleteAccount() {
     <div role="group" aria-label="Delete account" className="mt-4 rounded-2xl border border-line bg-bg p-4">
       <p className="text-[15px] font-semibold">Delete your account?</p>
       <p className="mt-1 text-[14px] text-muted">
-        This deletes your photos, swaps, share links and any swaps you haven&apos;t used. It can&apos;t be undone.
+        This deletes your photos, pictures, share links and any pictures you haven&apos;t used. It can&apos;t be undone.
       </p>
       {phase === "error" && (
         <p role="alert" className="mt-2 text-[14px] font-medium text-accent-ink">

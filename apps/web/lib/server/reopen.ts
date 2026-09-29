@@ -20,8 +20,8 @@ const fail = (status: number, error: string): Result => ({ status, body: { succe
  */
 export async function handleReopen(jobId: string, deps: ReopenDeps): Promise<Result> {
   const render = await deps.renders.get(jobId);
-  if (!render || render.owner !== deps.userId) return fail(404, "That swap isn't in your account.");
-  if (!render.keptAt || !render.scene) return fail(409, "This swap can't be opened again. Take a new photo instead.");
+  if (!render || render.owner !== deps.userId) return fail(404, "That picture isn't in your account.");
+  if (!render.keptAt || !render.scene) return fail(409, "This picture can't be opened again. Take a new photo instead.");
 
   const bytes = await deps.renders.download(render, "before");
   const { width, height } = imageSize(bytes);

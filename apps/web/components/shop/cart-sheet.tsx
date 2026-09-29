@@ -63,7 +63,7 @@ export function CartSheet({ open, onClose, summary }: CartSheetProps) {
       </div>
 
       {summary.groups.length === 0 ? (
-        <p className="py-8 text-[15px] text-muted">Your cart is empty. Add items from a swap with &ldquo;Shop this look&rdquo;.</p>
+        <p className="py-8 text-[15px] text-muted">Your cart is empty. Add items from a picture with &ldquo;Shop this look&rdquo;.</p>
       ) : (
         <>
           <div className="-mx-6 mt-3 max-h-[55svh] overflow-y-auto px-6">

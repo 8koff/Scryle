@@ -18,7 +18,7 @@ export function HeaderAccount({ returnTo = "/" }: { returnTo?: string }) {
     <>
       {me.status === "signed-in" && !onRendersPage && (
         <Link href="/renders" className="hidden text-[15px] font-medium text-muted transition-colors hover:text-fg sm:inline">
-          My swaps
+          My pictures
         </Link>
       )}
       <CreditsButton current={me} onSignIn={() => setSheet("sign-in")} onBuy={() => setSheet("buy")} />

@@ -77,7 +77,7 @@ export default async function SharePage({ params }: PageProps<"/b/[id]">) {
             </Link>
           </div>
           <p className="mt-3 text-[13px] text-muted">
-            {share.selections.length ? "Take your photo and we pick the same items for you." : "Take your photo and pick what to swap."} Your first swap is free.
+            {share.selections.length ? "Take your photo and we pick the same items for you." : "Take your photo and pick what to swap."} Your first picture is free.
           </p>
           <div className="mt-8">
             <ShopLook selections={share.selections} />

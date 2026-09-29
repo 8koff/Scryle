@@ -1,4 +1,4 @@
-import { buildRenderPlan, getPack, isPackId, SceneAnalysisSchema, type Selection } from "@retrofit/core";
+import { buildRenderPlan, getPack, isPackId, MAX_SWAPS_PER_PICTURE, SceneAnalysisSchema, type Selection } from "@retrofit/core";
 import { z } from "zod";
 import type { ApiErrorCode, ApiResponse, RenderStart } from "@/lib/api";
 import { fitsPart, type Product } from "@/lib/catalog/catalog";
@@ -50,7 +50,7 @@ const RequestSchema = z.object({
       ]),
     )
     .min(1)
-    .max(6),
+    .max(MAX_SWAPS_PER_PICTURE),
 });
 
 type Result = { status: number; body: ApiResponse<RenderStart> };
@@ -88,7 +88,7 @@ export async function handleRender(input: unknown, deps: RenderDeps): Promise<Re
     lookup = await lookupProducts(selections, deps.findLive);
   } catch (error) {
     console.error("[render] product lookup failed", error);
-    return fail(502, "The swap couldn't start. Please try again. You weren't charged.");
+    return fail(502, "The picture couldn't start. Please try again. You weren't charged.");
   }
   const resolved: Resolved[] = [];
   for (const s of selections) {
@@ -112,9 +112,9 @@ export async function handleRender(input: unknown, deps: RenderDeps): Promise<Re
   }
 
   // Checked only after the request is known to be good, so bad requests never cost a credit.
-  if (!deps.userId) return fail(401, "Sign in to get your free swap.", "sign_in");
+  if (!deps.userId) return fail(401, "Sign in to get your free picture.", "sign_in");
   const entry = await deps.credits.spend(deps.userId);
-  if (entry === null) return fail(402, "You're out of swaps. Pick a pack to keep going.", "no_credits");
+  if (entry === null) return fail(402, "You're out of pictures. Pick a pack to keep going.", "no_credits");
 
   let reserved = 0;
   try {
@@ -132,7 +132,7 @@ export async function handleRender(input: unknown, deps: RenderDeps): Promise<Re
     const costUsd = await deps.estimate(endpoint, body);
     if (!(await deps.spend.tryReserve(costUsd))) {
       await deps.credits.refundEntry(entry);
-      return fail(503, "We've hit today's swap limit. Please try again tomorrow. You weren't charged.");
+      return fail(503, "We've hit today's picture limit. Please try again tomorrow. You weren't charged.");
     }
     reserved = costUsd;
 
@@ -162,6 +162,6 @@ export async function handleRender(input: unknown, deps: RenderDeps): Promise<Re
     if (reserved) await deps.spend.release(reserved).catch((e) => console.error("[render] spend release failed", e));
     await deps.credits.refundEntry(entry).catch((e) => console.error("[render] refund failed", entry, e));
     console.error("[render] failed to start", error);
-    return fail(502, "The swap couldn't start. Please try again. You weren't charged.");
+    return fail(502, "The picture couldn't start. Please try again. You weren't charged.");
   }
 }

@@ -75,7 +75,7 @@ export function SignInSheet({ open, onClose, onSignedIn }: SignInSheetProps) {
 
   return (
     <Sheet open={open} onClose={onClose} label="Sign in">
-      <h2 className="display text-[2rem] font-semibold">{sentTo ? "Check your email" : "Your first swap is free"}</h2>
+      <h2 className="display text-[2rem] font-semibold">{sentTo ? "Check your email" : "Your first picture is free"}</h2>
       {sentTo ? (
         <form onSubmit={verify} className="mt-3 flex flex-col gap-3">
           <p className="text-[15px] text-muted">

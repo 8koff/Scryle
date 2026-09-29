@@ -66,7 +66,7 @@ export default function Home() {
       <footer className="border-t border-line">
         <div className={`${CONTAINER} flex flex-col gap-2 py-8 text-[13px] text-muted sm:flex-row sm:justify-between`}>
           <p>
-            © {new Date().getFullYear()} {BRAND.name}. Swaps made with Higgsfield.
+            © {new Date().getFullYear()} {BRAND.name}. Pictures made with Higgsfield.
           </p>
           <p>We may earn a commission when you buy through links on this site.</p>
           <nav aria-label="Legal" className="flex gap-4">
