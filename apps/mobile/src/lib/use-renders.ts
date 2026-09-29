@@ -18,10 +18,11 @@ const set = (next: Loaded<RenderCard[]>) => {
 };
 
 export function reloadRenders(): Promise<void> {
-  inFlight ??= getApi<RenderCard[]>("/api/renders")
+  inFlight ??= getApi<{ renders: RenderCard[] }>("/api/renders")
     .then((result) => {
       // A failed reload keeps the list already on screen.
-      if (result.status === "ready" || state.status !== "ready") set(result);
+      if (result.status === "ready") set({ status: "ready", data: result.data.renders });
+      else if (state.status !== "ready") set(result);
     })
     .finally(() => {
       inFlight = null;
