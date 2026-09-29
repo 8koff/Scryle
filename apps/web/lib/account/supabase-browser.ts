@@ -12,6 +12,7 @@ export function supabaseBrowser(): SupabaseClient | null {
   // Written out in full so Next.js inlines them into the browser bundle.
   const url = supabaseProjectUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  client = url && key ? createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true } }) : null;
+  // PKCE: Google sends back a one-time "?code=", which supabase-js swaps for a session and then removes from the address.
+  client = url && key ? createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true, flowType: "pkce" } }) : null;
   return client;
 }

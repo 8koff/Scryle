@@ -1,14 +1,7 @@
-import Image, { type StaticImageData } from "next/image";
+import Image from "next/image";
 import Link from "next/link";
-import { PACKS, type PackId } from "@retrofit/core";
-import { DEMO } from "@/lib/demo";
-
-const COVERS: Record<PackId, { image: StaticImageData; position?: string; examples: string }> = {
-  clothing: { image: DEMO.person.outfit, position: "50% 25%", examples: "Dresses, shirts, jeans, sneakers, bags" },
-  car: { image: DEMO.wheel.after, examples: "Wheels, paint, tint, lights, ride height" },
-  room: { image: DEMO.room.after, position: "58% 62%", examples: "Sofas, rugs, lamps, wall colour" },
-  anything: { image: DEMO.object, examples: "Bikes, desks, gardens, gear" },
-};
+import { PACKS } from "@retrofit/core";
+import { PACK_COVERS as COVERS } from "@/lib/scan/covers";
 
 /** A contents-page style index: one row per category, photo on the right. */
 export function CategoryGrid() {
@@ -27,7 +20,7 @@ export function CategoryGrid() {
           return (
             <li key={pack.id} className="border-b border-line">
               <Link
-                href={`/scan/${pack.id}`}
+                href={`/app?pack=${pack.id}`}
                 className="group grid grid-cols-[2rem_1fr_auto] items-center gap-x-4 py-4 sm:grid-cols-[3rem_1fr_1fr_auto] sm:gap-x-8 sm:py-5"
               >
                 <span className="text-[13px] font-semibold tabular-nums text-accent-ink">{String(i + 1).padStart(2, "0")}</span>

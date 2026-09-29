@@ -6,13 +6,12 @@ import { useState } from "react";
 import { startCheckout } from "@/lib/account/checkout";
 import { account, useAccount } from "@/lib/account/use-account";
 import { Sheet } from "@/components/ui/sheet";
-import { DeleteAccount } from "./delete-account";
 import { InvitePanel } from "./invite-panel";
 
 interface BuySheetProps {
   open: boolean;
   onClose: () => void;
-  /** Stripe sends the buyer back here, e.g. "/build/abc123". */
+  /** Stripe sends the buyer back here, e.g. "/app/build/abc123". */
   returnTo: string;
 }
 
@@ -77,24 +76,12 @@ export function BuySheet({ open, onClose, returnTo }: BuySheetProps) {
 
       {open && current.status === "signed-in" && <InvitePanel />}
 
-      <div className="mt-5 flex items-center justify-between gap-3 text-[13px] text-muted">
-        <span className="truncate">{current.status === "signed-in" ? current.email : null}</span>
-        <span className="flex shrink-0 gap-4">
-          <Link href="/renders" onClick={onClose} className="font-medium hover:text-fg">
-            My pictures
-          </Link>
-          <button type="button" onClick={() => account.signOut().then(onClose)} className="font-medium hover:text-fg">
-            Sign out
-          </button>
-        </span>
-      </div>
-      <p className="mt-2 text-[12px] text-muted">
+      <p className="mt-5 text-[12px] text-muted">
         Secure payment by Stripe. Pictures don&apos;t expire.{" "}
         <Link href="/terms#payments" target="_blank" className="underline underline-offset-2 hover:text-fg">
           All sales are final.
         </Link>
       </p>
-      {current.status === "signed-in" && <DeleteAccount key={String(open)} />}
     </Sheet>
   );
 }

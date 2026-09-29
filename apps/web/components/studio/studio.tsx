@@ -1,12 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getPack, MAX_SWAPS_PER_PICTURE, type SceneAnalysis } from "@retrofit/core";
 import { BuySheet } from "@/components/account/buy-sheet";
-import { CreditsButton } from "@/components/account/credits-button";
-import { SignInSheet } from "@/components/account/sign-in-sheet";
-import { CartButton } from "@/components/shop/cart-button";
 import { ShopLook } from "@/components/shop/shop-look";
 import type { Account } from "@/lib/account/account-store";
 import { account, useAccount } from "@/lib/account/use-account";
@@ -23,6 +20,7 @@ import { useLiveProducts } from "@/lib/shop/use-live-products";
 import { LooksRow } from "./looks-row";
 import { PartRow, partRowId } from "./part-row";
 import { PicksTray } from "./picks-tray";
+import { RenderProgress } from "./render-progress";
 import { ShopSearch } from "./shop-search";
 import { ShareButton } from "./share-button";
 import { Stage } from "./stage";
@@ -53,7 +51,7 @@ export function Studio({ id }: { id: string }) {
   const [lookId, setLookId] = useState<string | null>(null);
   const [shownId, setShownId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [sheet, setSheet] = useState<"sign-in" | "buy" | null>(null);
+  const [isBuying, setIsBuying] = useState(false);
   /** Style words from the latest pick or search; parts with no pick yet search with them. */
   const [style, setStyle] = useState("");
   /** The search words that found each part's pick, so its row keeps showing it. */
@@ -62,8 +60,6 @@ export function Studio({ id }: { id: string }) {
   const [opened, setOpened] = useState<string[]>([]);
   const [fitChoice, setFitChoice] = useState<Fit | undefined>(undefined);
   const me = useAccount();
-  /** Set when a render was asked for before signing in, so it can carry on straight after. */
-  const renderAfterSignIn = useRef(false);
 
   const pack = build ? getPack(build.pack) : null;
   const parts = useMemo(() => (build && pack ? studioParts(pack, build.scene) : []), [build, pack]);
@@ -134,21 +130,21 @@ export function Studio({ id }: { id: string }) {
     };
   }, [id, jobId, jobToken, renderingId]);
 
-  if (build === undefined) return <div className="min-h-svh bg-bg" />;
+  if (build === undefined) return <div className="flex-1" />;
   if (build === null || !pack) {
     return (
-      <main className="mx-auto flex min-h-svh max-w-md flex-col items-center justify-center gap-4 px-6 text-center">
+      <div className="mx-auto flex max-w-md flex-1 flex-col items-center justify-center gap-4 px-6 py-16 text-center">
         <h1 className="display text-[2.4rem] font-semibold">This photo is closed</h1>
         <p className="text-muted">A photo stays open for edits for one day. Your pictures are kept in My pictures, and you can open any of them again from there with Swap more.</p>
         <div className="mt-2 flex gap-3">
-          <Link href="/renders" className="inline-flex h-12 items-center rounded-full bg-accent px-7 font-semibold text-on-accent">
+          <Link href="/app/renders" className="inline-flex h-12 items-center rounded-full bg-accent px-7 font-semibold text-on-accent">
             My pictures
           </Link>
-          <Link href="/" className="inline-flex h-12 items-center rounded-full px-5 font-semibold hover:bg-surface-2">
+          <Link href="/app" className="inline-flex h-12 items-center rounded-full px-5 font-semibold hover:bg-surface-2">
             New photo
           </Link>
         </div>
-      </main>
+      </div>
     );
   }
 
@@ -211,13 +207,9 @@ export function Studio({ id }: { id: string }) {
     window.requestAnimationFrame(() => document.getElementById(partRowId(partId))?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
 
-  const render = async (current: Account = me) => {
-    if (!picks.length || rendering) return;
-    if (current.status === "signed-out") {
-      renderAfterSignIn.current = true;
-      return setSheet("sign-in");
-    }
-    if (current.status === "signed-in" && current.credits === 0) return setSheet("buy");
+  const render = async () => {
+    if (!picks.length || rendering || me.status !== "signed-in") return;
+    if (me.credits === 0) return setIsBuying(true);
     setNotice(null);
     setShownId(null);
     const versionId = newId();
@@ -243,11 +235,11 @@ export function Studio({ id }: { id: string }) {
       started = { success: false, error: "No connection. Check your internet and try again." };
     }
 
-    // Needs an account or credits: not a failed render, so drop it and show the right sheet.
+    // Needs credits (or the sign-in ran out): not a failed render, so drop it and say what to do.
     if (!started.success && started.code) {
       store.update(id, (b) => ({ ...b, versions: b.versions.filter((v) => v.id !== versionId) }));
-      if (started.code === "sign_in") renderAfterSignIn.current = true;
-      setSheet(started.code === "sign_in" ? "sign-in" : "buy");
+      if (started.code === "sign_in") setNotice("Please sign in again.");
+      else setIsBuying(true);
       return;
     }
     void account.refreshCredits();
@@ -266,19 +258,16 @@ export function Studio({ id }: { id: string }) {
   };
 
   return (
-    <div className="flex min-h-svh flex-col bg-bg text-fg">
-      <header className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4 pt-[env(safe-area-inset-top)] sm:px-6">
-        <Link href={`/scan/${build.pack}`} className="text-[15px] font-medium text-muted hover:text-fg">
+    <div className="flex flex-1 flex-col">
+      <div className="mx-auto flex h-12 w-full max-w-6xl items-center gap-3 px-4 sm:px-6">
+        <Link href={`/app?pack=${build.pack}`} className="text-[14px] font-medium text-muted hover:text-fg">
           ← New photo
         </Link>
-        <p className="text-[15px] font-semibold">{pack.label}</p>
-        <div className="flex items-center gap-2">
-          <CartButton />
-          <CreditsButton current={me} onSignIn={() => setSheet("sign-in")} onBuy={() => setSheet("buy")} />
-        </div>
-      </header>
+        <span aria-hidden className="text-line">/</span>
+        <p className="text-[14px] font-semibold">{pack.label}</p>
+      </div>
 
-      <main className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 gap-6 px-4 pb-40 sm:px-6 lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-10 lg:pb-10">
+      <div className="mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 gap-6 px-4 pb-40 sm:px-6 lg:grid-cols-[minmax(0,1fr)_420px] lg:gap-10 lg:pb-10">
         <section className="flex flex-col gap-4">
           <div className="mx-auto w-full" style={{ maxWidth: `min(100%, calc(50svh * ${aspect}))` }}>
             <Stage
@@ -298,15 +287,19 @@ export function Studio({ id }: { id: string }) {
               <ShareButton key={shown.id} build={build} version={shown} />
               <p className="text-center text-[13px] text-muted">
                 Saved to{" "}
-                <Link href="/renders" className="font-semibold text-fg underline-offset-4 hover:underline">
+                <Link href="/app/renders" className="font-semibold text-fg underline-offset-4 hover:underline">
                   My pictures
                 </Link>
               </p>
             </>
           )}
-          <p aria-live="polite" className="min-h-5 text-center text-[14px] text-muted">
-            {rendering ? "Making your picture… about 20 seconds" : notice}
-          </p>
+          {rendering ? (
+            <RenderProgress key={rendering.id} labels={rendering.labels} />
+          ) : (
+            <p aria-live="polite" className="min-h-5 text-center text-[14px] text-muted">
+              {notice}
+            </p>
+          )}
         </section>
 
         <aside className="flex flex-col gap-5">
@@ -411,24 +404,9 @@ export function Studio({ id }: { id: string }) {
             <p className="mt-2 text-center text-[13px] text-muted">{costLine(me)}</p>
           </div>
         </aside>
-      </main>
+      </div>
 
-      <SignInSheet
-        open={sheet === "sign-in"}
-        onClose={() => {
-          renderAfterSignIn.current = false;
-          setSheet(null);
-        }}
-        onSignedIn={() => {
-          setSheet(null);
-          if (renderAfterSignIn.current) {
-            renderAfterSignIn.current = false;
-            // Sign-in already loaded the balance, so read it fresh rather than from this render.
-            void render(account.getSnapshot());
-          }
-        }}
-      />
-      <BuySheet open={sheet === "buy"} onClose={() => setSheet(null)} returnTo={`/build/${id}`} />
+      <BuySheet open={isBuying} onClose={() => setIsBuying(false)} returnTo={`/app/build/${id}`} />
     </div>
   );
 }

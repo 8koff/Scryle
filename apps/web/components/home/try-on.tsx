@@ -76,7 +76,7 @@ export function TryOn() {
         </ul>
 
         <Link
-          href="/scan/clothing"
+          href="/app?pack=clothing"
           className="mt-7 hidden h-11 items-center rounded-full bg-accent px-5 text-[15px] font-semibold text-on-accent transition-[transform,background-color] duration-150 ease-out hover:bg-accent-2 active:scale-[0.97] md:inline-flex"
         >
           Try on with my photo
@@ -90,7 +90,7 @@ export function TryOn() {
           <span className="shrink-0">AI-generated example.</span>
         </figcaption>
         <Link
-          href="/scan/clothing"
+          href="/app?pack=clothing"
           className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-full bg-accent px-5 text-[15px] font-semibold text-on-accent transition-[transform,background-color] duration-150 ease-out active:scale-[0.97] md:hidden"
         >
           Try on with my photo

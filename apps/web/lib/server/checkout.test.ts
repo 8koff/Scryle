@@ -1,5 +1,6 @@
 import type Stripe from "stripe";
 import { describe, expect, it } from "vitest";
+import { BRAND } from "@retrofit/core";
 import { checkoutParams, fulfillCheckout, reversedPaymentIntent, reversePayment, safeReturnPath } from "./checkout";
 import { createMemoryCreditStore } from "./credits";
 
@@ -17,33 +18,36 @@ const session = (overrides: Partial<Stripe.Checkout.Session> = {}) =>
   }) as Stripe.Checkout.Session;
 
 describe("safeReturnPath", () => {
-  it("allows the home page and a build page only", () => {
-    expect(safeReturnPath("/build/abc123")).toBe("/build/abc123");
+  it("allows the home page and the app's own pages only", () => {
+    expect(safeReturnPath("/app/build/abc123")).toBe("/app/build/abc123");
+    expect(safeReturnPath("/app")).toBe("/app");
+    expect(safeReturnPath("/app/renders")).toBe("/app/renders");
+    expect(safeReturnPath("/app/account")).toBe("/app/account");
     expect(safeReturnPath("/")).toBe("/");
-    expect(safeReturnPath("/renders")).toBe("/renders");
-    expect(safeReturnPath("/renders/x")).toBe("/");
+    expect(safeReturnPath("/app/renders/x")).toBe("/");
+    expect(safeReturnPath("/app/other")).toBe("/");
     expect(safeReturnPath("https://evil.example")).toBe("/");
     expect(safeReturnPath("//evil.example")).toBe("/");
-    expect(safeReturnPath("/build/../../x")).toBe("/");
+    expect(safeReturnPath("/app/build/../../x")).toBe("/");
     expect(safeReturnPath(undefined)).toBe("/");
   });
 });
 
 describe("checkoutParams", () => {
   it("prices the pack from our own list and tags it with the user", () => {
-    const params = checkoutParams({ packId: "starter", user, origin: "https://scry.test", returnTo: "/build/abc" });
+    const params = checkoutParams({ packId: "starter", user, origin: "https://scry.test", returnTo: "/app/build/abc" });
     expect(params.mode).toBe("payment");
     expect(params.line_items?.[0]?.price_data?.unit_amount).toBe(499);
     expect(params.client_reference_id).toBe("u1");
     expect(params.metadata).toEqual({ user_id: "u1", pack: "starter" });
-    expect(params.success_url).toBe("https://scry.test/build/abc?checkout=done&session_id={CHECKOUT_SESSION_ID}");
-    expect(params.cancel_url).toBe("https://scry.test/build/abc");
+    expect(params.success_url).toBe("https://scry.test/app/build/abc?checkout=done&session_id={CHECKOUT_SESSION_ID}");
+    expect(params.cancel_url).toBe("https://scry.test/app/build/abc");
   });
 
   it("tells the buyer on Stripe's page that all sales are final", () => {
     const params = checkoutParams({ packId: "starter", user, origin: "https://x", returnTo: "/" });
     expect(params.custom_text?.submit).toMatchObject({ message: expect.stringMatching(/All sales are final/) });
-    expect(params.line_items?.[0]?.price_data?.product_data?.name).toBe("Scryle Starter: 25 pictures");
+    expect(params.line_items?.[0]?.price_data?.product_data?.name).toBe(`${BRAND.name} Starter: 25 pictures`);
   });
 
   it("rejects unknown packs", () => {

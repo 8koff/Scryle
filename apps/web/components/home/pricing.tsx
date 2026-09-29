@@ -36,7 +36,7 @@ export function Pricing() {
           </span>
         </p>
         <Link
-          href="/scan/room"
+          href="/app?pack=room"
           className="inline-flex h-11 w-max shrink-0 items-center rounded-full border border-line px-5 text-[15px] font-semibold transition-colors hover:bg-surface-2"
         >
           Try it free

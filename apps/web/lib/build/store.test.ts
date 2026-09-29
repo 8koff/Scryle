@@ -75,4 +75,21 @@ describe("build store cleanup", () => {
     expect(storage.getItem("retrofit:build:b1")).toBeNull();
     expect(storage.getItem("retrofit:build:b2")).not.toBeNull();
   });
+
+  it("lists recent builds, newest first, skipping expired ones", () => {
+    const storage = memoryStorage();
+    let t = 1000;
+    let n = 0;
+    const store = createBuildStore(storage, () => t, () => `b${++n}`);
+    store.create(base);
+    t = 2000;
+    store.create(base);
+    t = 3000;
+    store.create(base);
+    storage.setItem("retrofit:return-to", "not a build");
+    expect(store.recent(2).map((b) => b.id)).toEqual(["b3", "b2"]);
+    t = 1000 + 24 * 60 * 60 * 1000 + 1;
+    expect(store.recent(5).map((b) => b.id)).toEqual(["b3", "b2"]);
+  });
 });
+

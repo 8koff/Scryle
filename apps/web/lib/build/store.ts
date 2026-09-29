@@ -61,14 +61,19 @@ export function createBuildStore(
     }
   };
 
+  const ids = (): string[] => {
+    try {
+      return Array.from({ length: storage.length }, (_, i) => storage.key(i))
+        .filter((k): k is string => k?.startsWith(PREFIX) ?? false)
+        .map((k) => k.slice(PREFIX.length));
+    } catch {
+      return []; // Storage blocked: no builds.
+    }
+  };
+
   /** Drops every build older than 24 hours, so old photos don't pile up in the browser. */
   const sweep = () => {
-    try {
-      const keys = Array.from({ length: storage.length }, (_, i) => storage.key(i)).filter((k): k is string => k?.startsWith(PREFIX) ?? false);
-      for (const key of keys) read(key.slice(PREFIX.length));
-    } catch {
-      // Storage blocked: nothing to clean.
-    }
+    for (const id of ids()) read(id);
   };
 
   const write = (build: Build) => {
@@ -84,6 +89,14 @@ export function createBuildStore(
       return build;
     },
     get: read,
+    /** The newest builds still kept, for "pick up where you left off". */
+    recent(limit: number): Build[] {
+      return ids()
+        .map(read)
+        .filter((b): b is Build => b !== undefined)
+        .sort((a, b) => b.createdAt - a.createdAt)
+        .slice(0, limit);
+    },
     update(id: string, change: (build: Build) => Build): Build | undefined {
       const current = read(id);
       if (!current) return undefined;

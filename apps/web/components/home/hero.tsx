@@ -140,7 +140,7 @@ export function Hero() {
         </div>
         <div className="flex shrink-0 items-center gap-2.5">
           <Link
-            href={`/scan/${demo.pack}`}
+            href={`/app?pack=${demo.pack}`}
             className="inline-flex h-11 items-center rounded-full bg-accent px-5 text-[15px] font-semibold text-on-accent transition-[transform,background-color] duration-150 ease-out hover:bg-accent-2 active:scale-[0.97]"
           >
             {demo.cta}
