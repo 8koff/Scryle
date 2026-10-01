@@ -77,14 +77,21 @@ const sections: LegalSection[] = [
           one picture can change up to {MAX_SWAPS_PER_PICTURE} items at once (each item is a &ldquo;swap&rdquo;). Looking at
           your photo and picking parts is free.
         </li>
-        <li>Payments are handled by Stripe. We never see or store your card number.</li>
+        <li>
+          On the website, payments are handled by Stripe. In the iPhone app, you pay with your Apple ID through Apple&rsquo;s
+          in-app purchase, at the same prices. We never see or store your card number.
+        </li>
         <li>Pictures you bought don&rsquo;t expire.</li>
         <li>If a picture fails or the safety filter blocks it, you get that picture back automatically.</li>
         <li>
           <strong>All sales are final.</strong> We don&rsquo;t give refunds for packs you bought, used or not, except where
-          the law requires it. Try your free picture first to see if {BRAND.name} is right for you.
+          the law requires it. Try your free picture first to see if {BRAND.name} is right for you. For packs bought in the
+          iPhone app, refund requests go to Apple under Apple&rsquo;s own rules.
         </li>
-        <li>If a payment is reversed or disputed, the pictures it bought are removed from your account.</li>
+        <li>
+          If a payment is reversed, disputed or refunded (by Stripe or by Apple), the pictures it bought are removed from your
+          account.
+        </li>
         <li>
           Invites: when a new account you invited buys its first pack, you each get {INVITE_RENDERS} free pictures. Only new
           accounts count. We may remove pictures gained by gaming this.

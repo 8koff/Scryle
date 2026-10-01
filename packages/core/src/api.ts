@@ -30,6 +30,9 @@ export type RenderStatus = { status: "queued" | "in_progress" | "completed" | "f
 
 export type CreditsInfo = { credits: number };
 
+/** A finished purchase (Stripe on the web, Apple in the iOS app): the new balance and what was added. */
+export type CheckoutDone = { credits: number; added: number; bonus?: number };
+
 /** Your invite code and how many renders each person gets. */
 export type InviteInfo = { code: string; reward: number };
 

@@ -11,6 +11,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { AppState } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { startPurchases } from "@/lib/purchases";
 import { resumePendingRenders } from "@/lib/render";
 import { useAccount, useSessionRefresh } from "@/lib/use-account";
 import { colors, fonts } from "@/theme";
@@ -47,6 +48,8 @@ export default function RootLayout() {
   useEffect(() => {
     if (!isSignedInNow) return;
     void resumePendingRenders();
+    // Apple purchases left unfinished (app closed mid-purchase) are sent again here.
+    void startPurchases();
     // And each time the app comes back to the front.
     const sub = AppState.addEventListener("change", (next) => {
       if (next === "active") void resumePendingRenders();
@@ -67,6 +70,7 @@ export default function RootLayout() {
           <Stack.Screen name="swap/[id]" options={pageHeader} />
           <Stack.Screen name="capture/[pack]" options={pageHeader} />
           <Stack.Screen name="studio/[id]" options={pageHeader} />
+          <Stack.Screen name="buy" options={{ ...pageHeader, presentation: "modal" }} />
         </Stack.Protected>
         <Stack.Protected guard={!isSignedIn}>
           <Stack.Screen name="sign-in" />

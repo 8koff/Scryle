@@ -5,6 +5,7 @@ import type { ReportReason } from "@/lib/reports";
 export type {
   ApiErrorCode,
   ApiResponse,
+  CheckoutDone,
   CreditsInfo,
   InviteInfo,
   RenderCard,
@@ -15,8 +16,6 @@ export type {
 } from "@retrofit/core";
 
 export type CheckoutStart = { url: string };
-
-export type CheckoutDone = { credits: number; added: number; bonus?: number };
 
 /** Where a share link stands with the home page gallery. Only "approved" is ever shown. */
 export type GalleryStatus = "none" | "pending" | "approved" | "rejected";

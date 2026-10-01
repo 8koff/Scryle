@@ -10,7 +10,6 @@ import { CompareSlider } from "@/components/compare-slider";
 import { OptionCard, OptionCardSkeleton } from "@/components/option-card";
 import { getBuild, type Build } from "@/lib/builds";
 import { API_URL } from "@/lib/config";
-import { BUY_SOON } from "@/lib/packs";
 import { forgetPending, reloadSoon, rememberPending, startRender, waitForRender } from "@/lib/render";
 import { preselectChoices, type Chosen } from "@/lib/preselect";
 import { makeShareLink, SHARE_TEXT, sharePicture, type ShareJob } from "@/lib/share";
@@ -105,7 +104,7 @@ function Studio({ build }: { build: Build }) {
   const runRender = async () => {
     // A ref, not state: two taps in the same frame must not start two paid swaps.
     if (!picks.length || isRendering.current || me.status !== "signed-in") return;
-    if (me.credits === 0) return Alert.alert(BUY_SOON.title, "You're out of swaps. " + BUY_SOON.body);
+    if (me.credits === 0) return router.push("/buy");
     isRendering.current = true;
     const used = picks;
     setRender({ kind: "rendering", labels: used.map((p) => p.label) });
@@ -114,7 +113,7 @@ function Studio({ build }: { build: Build }) {
       void account.refreshCredits();
       if (started.status === "error") {
         show({ kind: "idle" });
-        if (started.code === "no_credits") return Alert.alert(BUY_SOON.title, "You're out of swaps. " + BUY_SOON.body);
+        if (started.code === "no_credits") return router.push("/buy");
         if (started.code === "sign_in") return Alert.alert("Please sign in again", "Your sign-in ran out. Sign out and in again from Account.");
         return Alert.alert("Couldn't start the swap", started.message);
       }

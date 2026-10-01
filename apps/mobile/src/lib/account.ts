@@ -6,10 +6,17 @@ export type Account =
   /** Supabase keys aren't set in this build. */
   | { status: "unavailable" }
   | { status: "signed-out" }
-  | { status: "signed-in"; email: string | undefined; name: string | null; credits: number | null };
+  | {
+      status: "signed-in";
+      /** The account id. Apple purchases carry it, so a purchase can only add to this account. */
+      userId: string;
+      email: string | undefined;
+      name: string | null;
+      credits: number | null;
+    };
 
 type Metadata = Record<string, unknown> | undefined;
-type SessionLike = { access_token: string; user: { email?: string; user_metadata?: Metadata } };
+type SessionLike = { access_token: string; user: { id: string; email?: string; user_metadata?: Metadata } };
 type Listener = () => void;
 
 /** What Apple's sign-in sheet gives back. Null when the person closed the sheet. */
@@ -93,7 +100,7 @@ export function createAccountStore({
     token = session?.access_token ?? null;
     if (!session) return set({ status: "signed-out" });
     const credits = state.status === "signed-in" ? state.credits : null;
-    set({ status: "signed-in", email: session.user.email, name: accountName(session.user.user_metadata), credits });
+    set({ status: "signed-in", userId: session.user.id, email: session.user.email, name: accountName(session.user.user_metadata), credits });
     // The first /api/credits call also gives a new account its free swap.
     if (!wasSignedIn) void refreshCredits();
   };

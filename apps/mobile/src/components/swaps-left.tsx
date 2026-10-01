@@ -1,5 +1,5 @@
-import { Alert, StyleSheet, Text, View } from "react-native";
-import { BUY_SOON } from "@/lib/packs";
+import { router } from "expo-router";
+import { StyleSheet, Text, View } from "react-native";
 import { useAccount } from "@/lib/use-account";
 import { colors, fonts, radius, space } from "@/theme";
 import { Button } from "./button";
@@ -15,7 +15,7 @@ export function SwapsLeft() {
       <Text style={styles.count} accessibilityLiveRegion="polite">
         {label}
       </Text>
-      <Button label="Buy" onPress={() => Alert.alert(BUY_SOON.title, BUY_SOON.body)} style={styles.buy} />
+      <Button label="Buy" onPress={() => router.push("/buy")} style={styles.buy} />
     </View>
   );
 }

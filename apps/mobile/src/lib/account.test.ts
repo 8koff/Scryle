@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { accountName, createAccountStore, type AppleCredential } from "./account";
 
-type Session = { access_token: string; user: { email?: string; user_metadata?: Record<string, unknown> } };
+type Session = { access_token: string; user: { id?: string; email?: string; user_metadata?: Record<string, unknown> } };
 
 /** Just the parts of the Supabase client the store uses. */
 function fakeClient(initial: Session | null = null) {
@@ -55,11 +55,11 @@ describe("createAccountStore", () => {
   });
 
   test("signs in from a saved session and loads credits with the Bearer token", async () => {
-    const { store, fetcher } = makeStore({ session: { access_token: "tok_123", user: { email: "a@b.co" } } });
+    const { store, fetcher } = makeStore({ session: { access_token: "tok_123", user: { id: "u1", email: "a@b.co" } } });
     await flush();
     await flush();
 
-    expect(store.getSnapshot()).toEqual({ status: "signed-in", email: "a@b.co", name: null, credits: 1 });
+    expect(store.getSnapshot()).toEqual({ status: "signed-in", userId: "u1", email: "a@b.co", name: null, credits: 1 });
     const [url, init] = fetcher.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("https://example.test/api/credits");
     expect(new Headers(init.headers).get("Authorization")).toBe("Bearer tok_123");

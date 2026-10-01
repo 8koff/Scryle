@@ -22,8 +22,8 @@ const sections: LegalSection[] = [
           chose to swap.
         </li>
         <li>
-          <strong>Purchases</strong>: which pack you bought, the price and Stripe&rsquo;s payment reference. Stripe handles
-          your card; we never see the card number.
+          <strong>Purchases</strong>: which pack you bought, the price and the payment reference from Stripe (website) or
+          Apple (iPhone app). Stripe or Apple handles your card; we never see the card number.
         </li>
         <li>
           <strong>Invites</strong>: your invite code, and who invited you, so we can give both of you the free pictures.
@@ -84,7 +84,11 @@ const sections: LegalSection[] = [
             or your IP address. The product pictures come from Google Shopping.
           </li>
           <li>
-            <strong>Stripe</strong>: payments.
+            <strong>Stripe</strong>: payments on the website.
+          </li>
+          <li>
+            <strong>Apple</strong>: payments in the iPhone app. Apple tells us which pack was bought, its transaction
+            number, and later if it was refunded. It doesn&rsquo;t tell us your Apple ID or card.
           </li>
           <li>
             <strong>Vercel</strong>: hosts the website.
@@ -111,7 +115,7 @@ const sections: LegalSection[] = [
         <li>If you scan without making a picture, we don&rsquo;t keep the photo ourselves. Only the partner copies above exist.</li>
         <li>
           If you close your account, we delete your photos, pictures, share links, purchase history and invite details.
-          Stripe keeps its own payment records, as tax law requires.
+          Stripe and Apple keep their own payment records, as tax law requires.
         </li>
         <li>Reports are kept as a record of what we checked and removed.</li>
       </ul>

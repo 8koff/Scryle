@@ -31,9 +31,3 @@ export const PACK_COVERS: Record<PackId, Cover> = {
   },
   anything: { before: require("../../assets/covers/anything.jpg"), examples: "Bikes, desks, gardens, gear" },
 };
-
-/** Until in-app buying ships (part 4 of the iOS plan). Shown by every Buy button. */
-export const BUY_SOON = {
-  title: "Buying swaps is coming soon",
-  body: "You'll be able to buy swaps in the app in the next update.",
-};

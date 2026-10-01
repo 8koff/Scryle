@@ -47,3 +47,30 @@ npx expo lint
 - **Hidden Apple emails.** Someone who hides their email from Apple can't sign in on the website yet (the web has no Apple button).
 - **Clothing** is live camera only and asks for 18+, the same as the web. Keep that in the app: the server can't tell a camera photo from an upload.
 - Build plan and decisions: see the "iOS app" pull requests.
+
+## Apple in-app purchase: owner setup
+
+The app sells the same 3 packs as the website, through Apple. Buying does not work in Expo Go; use a development build or TestFlight.
+
+1. **App Store Connect → Agreements, Tax, and Banking**: sign the Paid Apps agreement and add bank and tax details.
+2. **Small Business Program**: join it (Apple's fee drops from 30% to 15%; the margins assume 15%).
+3. **App Store Connect → your app → In-App Purchases**: create 3 **Consumable** products:
+
+   | Product ID | Price | Name |
+   |---|---|---|
+   | `io.scryapp.credits.starter` | $4.99 | 25 swaps |
+   | `io.scryapp.credits.plus` | $9.99 | 60 swaps |
+   | `io.scryapp.credits.pro` | $19.99 | 150 swaps |
+
+4. **App Store Connect → your app → App Information → App Store Server Notifications**: set Production and Sandbox URLs to
+   `https://scryapp.io/api/apple/notifications`, version 2. Refunds then take the swaps back.
+5. **Vercel → Environment Variables** (production):
+   - `APPLE_BUNDLE_ID` = `io.scryapp.app`
+   - `APPLE_APP_ID` = the app's numeric Apple ID (App Information → Apple ID)
+   - `APPLE_ALLOW_SANDBOX` = `yes` only while testing or while Apple reviews the app. Test purchases are free.
+   - `APPLE_SANDBOX_USERS` (optional) = account ids allowed to use test purchases, comma-separated. Empty = everyone.
+6. **Users and Access → Sandbox → Test Accounts**: make a sandbox tester to try buying on your iPhone.
+
+How it works: Apple charges → the app sends Apple's signed transaction to `/api/apple/purchase` → the server checks Apple's
+signature and that the purchase belongs to this account, then adds the swaps once → only then does the app finish the
+transaction with Apple. If anything fails in between, iOS keeps the transaction and the app sends it again on the next start.
