@@ -72,7 +72,7 @@ export default async function WaitlistPage({ searchParams }: PageProps<"/waitlis
             <p className="mt-6 max-w-[440px] text-[18px] leading-relaxed text-muted">{PITCH}</p>
             <div className="mt-8 max-w-[440px]">
               <JoinForm source={one(ref)} />
-              <p className="mt-3 text-[14px] text-muted">Your first picture is free. No password: we email you a code.</p>
+              <p className="mt-3 text-[14px] text-muted">Your first picture is free. No password: sign in with Google or an email code.</p>
             </div>
           </div>
           <div className="mx-auto w-full max-w-[440px]">
