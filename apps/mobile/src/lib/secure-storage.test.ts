@@ -16,6 +16,19 @@ function memoryStore(): KeyValueStore & { data: Map<string, string> } {
 }
 
 describe("createChunkedStorage", () => {
+  test("reads the Keychain once, then from memory", async () => {
+    const store = memoryStore();
+    const writer = createChunkedStorage(store);
+    await writer.setItem("k", "session");
+    const reader = createChunkedStorage(store);
+    const getItemAsync = jest.spyOn(store, "getItemAsync");
+
+    expect(await reader.getItem("k")).toBe("session");
+    const reads = getItemAsync.mock.calls.length;
+    expect(await reader.getItem("k")).toBe("session");
+    expect(getItemAsync.mock.calls.length).toBe(reads);
+  });
+
   test("returns null for a key that was never set", async () => {
     const storage = createChunkedStorage(memoryStore());
     expect(await storage.getItem("sb-auth-token")).toBeNull();
@@ -101,7 +114,8 @@ describe("createChunkedStorage", () => {
     await storage.setItem("k", "z".repeat(CHUNK_SIZE + 1));
     store.data.delete("k.0.1");
 
-    expect(await storage.getItem("k")).toBeNull();
+    // A fresh start (no memory) reads the Keychain again.
+    expect(await createChunkedStorage(store).getItem("k")).toBeNull();
   });
 
   test("ignores nonsense meta", async () => {

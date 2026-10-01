@@ -4,9 +4,13 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/button";
+import { LegalLinks } from "@/components/legal-links";
 import { buy, canBuyHere, loadOffers, onDelivered, type DeliverResult, type PackOffer } from "@/lib/purchases";
 import { useAccount } from "@/lib/use-account";
 import { colors, display, fonts, radius, space } from "@/theme";
+
+/** How long to show the spinner before saying the purchase is still waiting. */
+const WAIT_MS = 90_000;
 
 type Offers = { status: "loading" } | { status: "ready"; offers: PackOffer[] } | { status: "unavailable"; message: string };
 
@@ -53,6 +57,16 @@ export default function Buy() {
       if (error.kind === "error") setNotice(error.message);
     }
   };
+
+  // Ask to Buy (a parent approves later) sends no answer now: don't spin forever.
+  useEffect(() => {
+    if (!buyingId) return;
+    const timer = setTimeout(() => {
+      setBuyingId(null);
+      setNotice("Still waiting for Apple. If the purchase needs approval, your swaps arrive when it's approved.");
+    }, WAIT_MS);
+    return () => clearTimeout(timer);
+  }, [buyingId]);
 
   const credits = me.status === "signed-in" ? me.credits : null;
 
@@ -117,6 +131,7 @@ export default function Buy() {
         <Text style={styles.small}>
           Paid with your Apple ID. All sales are final, and swaps you buy don&apos;t expire. Refund requests go to Apple.
         </Text>
+        <LegalLinks />
       </ScrollView>
     </SafeAreaView>
   );

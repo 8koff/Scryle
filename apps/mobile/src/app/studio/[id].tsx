@@ -10,7 +10,9 @@ import { CompareSlider } from "@/components/compare-slider";
 import { OptionCard, OptionCardSkeleton } from "@/components/option-card";
 import { getBuild, type Build } from "@/lib/builds";
 import { API_URL } from "@/lib/config";
+import { OFFLINE } from "@/lib/api";
 import { forgetPending, reloadSoon, rememberPending, startRender, waitForRender } from "@/lib/render";
+import { reloadRenders } from "@/lib/use-renders";
 import { preselectChoices, type Chosen } from "@/lib/preselect";
 import { makeShareLink, SHARE_TEXT, sharePicture, type ShareJob } from "@/lib/share";
 import { cachedSearch, FITS, loadLiveProducts, searchStore, type Fit, type LiveProduct, type SearchResult } from "@/lib/store-search";
@@ -115,6 +117,13 @@ function Studio({ build }: { build: Build }) {
         show({ kind: "idle" });
         if (started.code === "no_credits") return router.push("/buy");
         if (started.code === "sign_in") return Alert.alert("Please sign in again", "Your sign-in ran out. Sign out and in again from Account.");
+        if (started.message === OFFLINE) {
+          void reloadRenders();
+          return Alert.alert(
+            "Connection lost",
+            "We couldn't confirm the swap started. Check My swaps in a minute before trying again, so you don't pay twice.",
+          );
+        }
         return Alert.alert("Couldn't start the swap", started.message);
       }
       const { jobId, jobToken } = started.data;

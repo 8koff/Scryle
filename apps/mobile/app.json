@@ -51,6 +51,13 @@
         }
       ],
       "expo-iap"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "8b75423d-43be-448c-927a-8f8b5201b067"
+      }
+    },
+    "owner": "8kofff"
   }
 }

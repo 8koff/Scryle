@@ -1,6 +1,7 @@
 import { fitWithin, MAX_EDGE } from "./photo";
 
 jest.mock("expo-image-manipulator", () => ({ ImageManipulator: {}, SaveFormat: { JPEG: "jpeg" } }));
+jest.mock("expo-file-system", () => ({ File: jest.fn() }));
 
 describe("fitWithin", () => {
   test("leaves a photo that already fits", () => {

@@ -1,14 +1,17 @@
 import { getPack, type RenderCard } from "@retrofit/core";
 import { Image } from "expo-image";
 import { router } from "expo-router";
+import { memo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { pictureSource } from "@/lib/use-renders";
 import { colors, fonts, radius, space } from "@/theme";
 
 type Props = { render: RenderCard; width: number };
 
 /** One saved swap: the AI picture (labelled as such), what changed, and the category. */
-export function SwapThumb({ render, width }: Props) {
-  const label = render.labels[0] ?? getPack(render.pack).label;
+export const SwapThumb = memo(function SwapThumb({ render, width }: Props) {
+  const packLabel = getPack(render.pack).label;
+  const label = render.labels[0] ?? packLabel;
   return (
     <Pressable
       accessibilityRole="button"
@@ -17,16 +20,23 @@ export function SwapThumb({ render, width }: Props) {
       style={({ pressed }) => [{ width }, pressed && styles.pressed]}
     >
       <View style={[styles.frame, { width, height: width * 1.25 }]}>
-        <Image source={{ uri: render.afterUrl }} style={styles.image} contentFit="cover" transition={150} />
+        {/* Decoded straight to thumbnail size: full renders are large. */}
+        <Image
+          source={pictureSource(render.afterUrl, render.jobId, "after")}
+          style={styles.image}
+          contentFit="cover"
+          transition={150}
+          enforceEarlyResizing
+        />
         <Text style={styles.tag}>After (AI edit)</Text>
       </View>
       <Text style={styles.label} numberOfLines={1}>
         {label}
       </Text>
-      <Text style={styles.meta}>{getPack(render.pack).label}</Text>
+      <Text style={styles.meta}>{packLabel}</Text>
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   pressed: { opacity: 0.7 },

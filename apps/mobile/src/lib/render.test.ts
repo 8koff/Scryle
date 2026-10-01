@@ -7,7 +7,10 @@ jest.mock("@react-native-async-storage/async-storage", () =>
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   require("@react-native-async-storage/async-storage/jest/async-storage-mock"),
 );
-jest.mock("./api", () => ({ postJson: jest.fn() }));
+jest.mock("./api", () => ({
+  postJson: jest.fn(),
+  withTimeout: (run: (signal: AbortSignal) => Promise<unknown>) => run(new AbortController().signal),
+}));
 jest.mock("./use-renders", () => ({ reloadRenders: jest.fn() }));
 jest.mock("./config", () => ({ API_URL: "https://example.test" }));
 
@@ -20,7 +23,7 @@ describe("checkRender", () => {
 
     const end = await checkRender("job-1", "tok/1", fetcher as unknown as typeof fetch);
 
-    expect(fetcher).toHaveBeenCalledWith("https://example.test/api/render/job-1?t=tok%2F1");
+    expect(fetcher).toHaveBeenCalledWith("https://example.test/api/render/job-1?t=tok%2F1", expect.objectContaining({ signal: expect.anything() }));
     expect(end).toEqual({ status: "done", imageUrl: "https://cdn.test/a.jpg" });
   });
 

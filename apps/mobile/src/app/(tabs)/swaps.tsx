@@ -31,6 +31,11 @@ export default function MySwaps() {
         columnWrapperStyle={styles.row}
         contentContainerStyle={styles.content}
         renderItem={({ item }) => <SwapThumb render={item} width={itemWidth} />}
+        // A few rows at a time: each picture is a full-size render.
+        initialNumToRender={6}
+        maxToRenderPerBatch={6}
+        windowSize={5}
+        removeClippedSubviews
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => void refresh()} tintColor={colors.muted} />}
         ListHeaderComponent={<Text style={styles.title}>My swaps</Text>}
         ListEmptyComponent={

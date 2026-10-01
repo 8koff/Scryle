@@ -18,5 +18,8 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "turbo": "^2.11.3"
+  },
+  "overrides": {
+    "react-native-worklets": "0.10.1"
   }
 }

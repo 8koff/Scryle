@@ -5,7 +5,7 @@ import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Button } from "@/components/button";
 import { CompareSlider } from "@/components/compare-slider";
 import { reopenSaved } from "@/lib/builds";
-import { findRender } from "@/lib/use-renders";
+import { findRender, pictureSource } from "@/lib/use-renders";
 import { colors, fonts, radius, space } from "@/theme";
 
 /** One saved swap: drag between the photo and the AI edit. The AI side is always labelled. */
@@ -27,8 +27,8 @@ export default function SwapViewer() {
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: getPack(render.pack).label }} />
       <CompareSlider
-        before={{ uri: render.beforeUrl }}
-        after={{ uri: render.afterUrl }}
+        before={pictureSource(render.beforeUrl, render.jobId, "before")}
+        after={pictureSource(render.afterUrl, render.jobId, "after")}
         dragAnywhere
         hint
         style={[styles.frame, { aspectRatio: render.width / render.height }]}

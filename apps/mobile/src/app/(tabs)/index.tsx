@@ -1,6 +1,7 @@
 import { PACKS, type Pack } from "@retrofit/core";
 import { Image } from "expo-image";
 import { router } from "expo-router";
+import { memo } from "react";
 import { FlatList as NativeFlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 // The gesture-aware list, so dragging a card's slider handle doesn't also swipe the list.
 import { FlatList } from "react-native-gesture-handler";
@@ -48,7 +49,7 @@ export default function Home() {
           snapToInterval={cardWidth + space.md}
           decelerationRate="fast"
           contentContainerStyle={styles.carousel}
-          ItemSeparatorComponent={() => <View style={{ width: space.md }} />}
+          ItemSeparatorComponent={CardGap}
         />
 
         <View style={styles.padded}>
@@ -72,7 +73,7 @@ export default function Home() {
               renderItem={({ item }) => <SwapThumb render={item} width={140} />}
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.carousel}
-              ItemSeparatorComponent={() => <View style={{ width: space.sm + 4 }} />}
+              ItemSeparatorComponent={ThumbGap}
             />
           ) : (
             <Text style={[styles.padded, styles.empty]}>
@@ -93,7 +94,7 @@ export default function Home() {
   );
 }
 
-function CategoryCard({ pack, width, isFirst }: { pack: Pack; width: number; isFirst: boolean }) {
+const CategoryCard = memo(function CategoryCard({ pack, width, isFirst }: { pack: Pack; width: number; isFirst: boolean }) {
   const cover = PACK_COVERS[pack.id];
   return (
     <Pressable
@@ -120,9 +121,14 @@ function CategoryCard({ pack, width, isFirst }: { pack: Pack; width: number; isF
       </View>
     </Pressable>
   );
-}
+});
+
+const CardGap = () => <View style={styles.cardGap} />;
+const ThumbGap = () => <View style={styles.thumbGap} />;
 
 const styles = StyleSheet.create({
+  cardGap: { width: space.md },
+  thumbGap: { width: space.sm + 4 },
   screen: { flex: 1, backgroundColor: colors.bg },
   content: { paddingTop: space.md, paddingBottom: space.xl, gap: space.lg },
   padded: { paddingHorizontal: space.md },

@@ -39,6 +39,13 @@ export function accountName(meta: Metadata): string | null {
   return text(meta?.display_name) ?? text(meta?.full_name) ?? text(meta?.name);
 }
 
+/** True when nothing a screen shows has changed (token refreshes don't count). */
+export function isSameAccount(a: Account, b: Account): boolean {
+  if (a.status !== b.status) return false;
+  if (a.status !== "signed-in" || b.status !== "signed-in") return true;
+  return a.userId === b.userId && a.email === b.email && a.name === b.name && a.credits === b.credits;
+}
+
 /**
  * Who is signed in and how many swaps they have. Same job as the web's account store:
  * the server only needs `Authorization: Bearer <token>`, so the app calls the same API.
@@ -60,6 +67,7 @@ export function createAccountStore({
   const listeners = new Set<Listener>();
 
   const set = (next: Account) => {
+    if (isSameAccount(state, next)) return;
     state = next;
     listeners.forEach((l) => l());
   };

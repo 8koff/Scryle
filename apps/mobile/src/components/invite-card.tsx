@@ -6,13 +6,27 @@ import { API_URL } from "@/lib/config";
 import { colors, fonts, radius, space } from "@/theme";
 import { Button } from "./button";
 
+/** The invite code never changes for an account; ask once per session. */
+let kept: Promise<Exclude<Loaded<InviteInfo>, { status: "loading" }>> | null = null;
+const loadInvite = () => {
+  kept ??= getApi<InviteInfo>("/api/invites").then((result) => {
+    if (result.status === "error") kept = null; // try again next time
+    return result;
+  });
+  return kept;
+};
+/** On sign-out: the next person has their own code. */
+export const forgetInvite = () => {
+  kept = null;
+};
+
 /** Your invite link. You both get free swaps when the friend buys their first pack. */
 export function InviteCard() {
   const [invite, setInvite] = useState<Loaded<InviteInfo>>({ status: "loading" });
 
   useEffect(() => {
     let isLive = true;
-    void getApi<InviteInfo>("/api/invites").then((result) => {
+    void loadInvite().then((result) => {
       if (isLive) setInvite(result);
     });
     return () => {

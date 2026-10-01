@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/button";
-import { InviteCard } from "@/components/invite-card";
+import { forgetInvite, InviteCard } from "@/components/invite-card";
+import { LegalLinks } from "@/components/legal-links";
 import { SwapsLeft } from "@/components/swaps-left";
 import { getApi } from "@/lib/api";
 import { clearPending } from "@/lib/render";
@@ -17,8 +18,13 @@ export default function Account() {
 
   const signOut = async () => {
     resetRenders();
+    forgetInvite();
     await clearPending();
-    await account.signOut();
+    try {
+      await account.signOut();
+    } catch {
+      Alert.alert("Couldn't sign out", "Please try again.");
+    }
   };
 
   // Apple requires deleting the account inside the app. Same server flow as the web.
@@ -56,6 +62,7 @@ export default function Account() {
         <InviteCard />
         <Button label="Sign out" variant="quiet" onPress={() => void signOut()} />
         <Button label="Delete account" variant="quiet" isBusy={isDeleting} onPress={confirmDelete} style={styles.delete} />
+        <LegalLinks />
       </ScrollView>
     </SafeAreaView>
   );

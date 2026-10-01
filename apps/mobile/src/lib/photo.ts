@@ -1,3 +1,4 @@
+import { File } from "expo-file-system";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 
 /** Same as the web: at most 2048 px on the long edge, JPEG at 0.9. */
@@ -13,12 +14,22 @@ export function fitWithin(width: number, height: number, maxEdge = MAX_EDGE): { 
   return { width: Math.round(width * scale), height: Math.round(height * scale) };
 }
 
-/** Shrinks and re-encodes a camera or library photo, ready for /api/scan. */
-export async function preparePhoto(uri: string, width: number, height: number): Promise<Photo> {
+/**
+ * Shrinks and re-encodes a camera or library photo, ready for /api/scan. `deleteOriginal` is
+ * for camera shots: the full-size file is only a step on the way and would fill the phone.
+ */
+export async function preparePhoto(uri: string, width: number, height: number, deleteOriginal = false): Promise<Photo> {
   const target = fitWithin(width, height);
   const context = ImageManipulator.manipulate(uri);
   if (target) context.resize(target);
   const image = await context.renderAsync();
   const saved = await image.saveAsync({ compress: QUALITY, format: SaveFormat.JPEG });
+  if (deleteOriginal && saved.uri !== uri) {
+    try {
+      new File(uri).delete();
+    } catch {
+      // Already gone, or iOS cleans the cache later: nothing to do.
+    }
+  }
   return { uri: saved.uri, width: saved.width, height: saved.height };
 }

@@ -108,7 +108,7 @@ function Camera({ pack, onPhoto }: { pack: Pack; onPhoto: (photo: Photo) => void
     setError(null);
     try {
       const shot = await camera.current.takePictureAsync({ quality: 1, shutterSound: false });
-      onPhoto(await preparePhoto(shot.uri, shot.width, shot.height));
+      onPhoto(await preparePhoto(shot.uri, shot.width, shot.height, true));
     } catch {
       setError("Couldn't take the photo. Please try again.");
       setIsBusy(false);

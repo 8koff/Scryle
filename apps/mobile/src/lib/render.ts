@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { ApiResponse, RenderStart, RenderStatus, SelectionInput } from "@retrofit/core";
-import { postJson, type Loaded } from "./api";
+import { postJson, withTimeout, type Loaded } from "./api";
 import { claimOf, type Build } from "./builds";
 import { API_URL } from "./config";
 import { reloadRenders } from "./use-renders";
@@ -9,6 +9,8 @@ import { reloadRenders } from "./use-renders";
 export const POLL_MS = 2500;
 /** Give up after about six minutes; Higgsfield refunds renders that never finish. */
 export const MAX_POLLS = 150;
+/** One status check; the next poll tries again. */
+const CHECK_TIMEOUT_MS = 20_000;
 const DONE = new Set(["completed", "failed", "nsfw", "canceled"]);
 
 export type RenderEnd =
@@ -24,7 +26,8 @@ export async function startRender(build: Build, selections: SelectionInput[]): P
 /** One status check. Null while it is still running (or the network blinked). */
 export async function checkRender(jobId: string, jobToken: string, fetcher: typeof fetch = fetch): Promise<RenderEnd | null> {
   try {
-    const response = await fetcher(`${API_URL}/api/render/${encodeURIComponent(jobId)}?t=${encodeURIComponent(jobToken)}`);
+    const url = `${API_URL}/api/render/${encodeURIComponent(jobId)}?t=${encodeURIComponent(jobToken)}`;
+    const response = await withTimeout((signal) => fetcher(url, { signal }), CHECK_TIMEOUT_MS);
     // The server doesn't know this job (bad or changed signature): asking again won't help.
     if (response.status === 404) return { status: "failed", message: "This swap can't be found. You weren't charged for a failed swap." };
     const body = (await response.json()) as ApiResponse<RenderStatus>;

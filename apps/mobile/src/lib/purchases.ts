@@ -66,20 +66,29 @@ export async function deliverPurchase(
 
 type IapEventPurchase = Parameters<Parameters<Iap["purchaseUpdatedListener"]>[0]>[0];
 let connected: Promise<boolean> | null = null;
+let isListening = false;
 
 async function handle(lib: Iap, purchase: IapEventPurchase) {
-  const result = await deliverPurchase(purchase, () => lib.finishTransaction({ purchase, isConsumable: true }));
+  let result: DeliverResult | null;
+  try {
+    result = await deliverPurchase(purchase, () => lib.finishTransaction({ purchase, isConsumable: true }));
+  } catch {
+    // Network or StoreKit error: the purchase stays unfinished and is sent again later.
+    result = { status: "kept", message: "the connection dropped" };
+  }
   if (result) listeners.forEach((l) => l(result));
 }
 
 /** Connects to the App Store once and listens for purchases for as long as the app runs. */
 function connect(lib: Iap): Promise<boolean> {
+  // The listener goes on first (once), so a transaction StoreKit replays at start-up isn't missed.
+  if (!isListening) {
+    isListening = true;
+    lib.purchaseUpdatedListener((purchase) => void handle(lib, purchase));
+  }
   connected ??= lib
     .initConnection()
-    .then(() => {
-      lib.purchaseUpdatedListener((purchase) => void handle(lib, purchase));
-      return true;
-    })
+    .then(() => true)
     .catch(() => {
       connected = null; // try again next time
       return false;
@@ -94,10 +103,11 @@ function connect(lib: Iap): Promise<boolean> {
 export async function startPurchases(): Promise<void> {
   const lib = await loadIap();
   if (!lib || !(await connect(lib))) return;
-  try {
-    for (const purchase of await lib.getAvailablePurchases()) void handle(lib, purchase);
-  } catch {
-    // The listener still catches new purchases; old ones come back next time.
+  // Unfinished transactions (StoreKit's queue) and anything the store still lists. `sending`
+  // stops the same one being sent twice; the server counts each once anyway.
+  const lists = await Promise.allSettled([lib.getPendingTransactionsIOS(), lib.getAvailablePurchases()]);
+  for (const list of lists) {
+    if (list.status === "fulfilled") for (const purchase of list.value) void handle(lib, purchase);
   }
 }
 
