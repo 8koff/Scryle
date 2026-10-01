@@ -37,9 +37,3 @@ export const BUY_SOON = {
   title: "Buying swaps is coming soon",
   body: "You'll be able to buy swaps in the app in the next update.",
 };
-
-/** Until the camera ships (part 2 of the iOS plan). */
-export const CAMERA_SOON = {
-  title: "The camera is coming next",
-  body: "Taking a photo and swapping arrives in the next update.",
-};

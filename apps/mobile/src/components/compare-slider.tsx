@@ -53,8 +53,11 @@ export function CompareSlider({ before, after, style, dragAnywhere = false, hint
     .activeOffsetX([-6, 6])
     // A mostly-up-or-down swipe is a page scroll, not a slider drag.
     .failOffsetY([-12, 12])
-    .onBegin((e) => {
+    .onBegin(() => {
       cancelAnimation(split);
+    })
+    // Only once it's a sideways drag: a touch that turns into a page scroll leaves the divider alone.
+    .onStart((e) => {
       // Anywhere: jump to the finger. Handle only: keep the grab point, so it doesn't jump.
       if (dragAnywhere && width) split.set(Math.min(1, Math.max(0, e.x / width)));
       dragStart.set(split.get());

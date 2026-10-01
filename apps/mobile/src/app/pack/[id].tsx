@@ -1,11 +1,11 @@
 import { getPack, isPackId, PACKS, type Pack } from "@retrofit/core";
 import { Image } from "expo-image";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/button";
 import { CompareSlider } from "@/components/compare-slider";
-import { CAMERA_SOON, PACK_COVERS } from "@/lib/packs";
+import { PACK_COVERS } from "@/lib/packs";
 import { colors, display, fonts, radius, space } from "@/theme";
 
 /** One category: what it changes and how to take the photo. Switch category at the top. */
@@ -71,7 +71,7 @@ export default function PackPage() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <Button label="Take photo" onPress={() => Alert.alert(CAMERA_SOON.title, CAMERA_SOON.body)} />
+        <Button label="Take photo" onPress={() => router.push({ pathname: "/capture/[pack]", params: { pack: pack.id } })} />
       </View>
     </SafeAreaView>
   );

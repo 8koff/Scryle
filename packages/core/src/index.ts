@@ -36,3 +36,6 @@ export type {
   ScanResult,
   SelectionInput,
 } from "./api";
+
+export { fitsPart, STUDIO_OPTIONS, studioParts } from "./studio";
+export type { StudioOption, StudioPart } from "./studio";

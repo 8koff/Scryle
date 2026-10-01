@@ -28,7 +28,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Scryle uses the camera to take the photo you want to restyle. Photos are only sent when you tap Scan.",
+          "cameraPermission": "Scryle uses the camera to take the photo you want to restyle. The photo is only sent when you tap Use this photo.",
           "microphonePermission": false,
           "recordAudioAndroid": false
         }

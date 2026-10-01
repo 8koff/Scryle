@@ -5,6 +5,7 @@ import { Button } from "@/components/button";
 import { InviteCard } from "@/components/invite-card";
 import { SwapsLeft } from "@/components/swaps-left";
 import { getApi } from "@/lib/api";
+import { clearPending } from "@/lib/render";
 import { account, useAccount } from "@/lib/use-account";
 import { resetRenders } from "@/lib/use-renders";
 import { colors, display, fonts, radius, space } from "@/theme";
@@ -16,6 +17,7 @@ export default function Account() {
 
   const signOut = async () => {
     resetRenders();
+    await clearPending();
     await account.signOut();
   };
 

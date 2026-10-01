@@ -9,7 +9,9 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
+import { AppState } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { resumePendingRenders } from "@/lib/render";
 import { useAccount, useSessionRefresh } from "@/lib/use-account";
 import { colors, fonts } from "@/theme";
 
@@ -40,6 +42,17 @@ export default function RootLayout() {
   useEffect(() => {
     if (isReady) void SplashScreen.hideAsync();
   }, [isReady]);
+  // Swaps that finished while the app was closed: ask once, so they land in My swaps.
+  const isSignedInNow = account.status === "signed-in";
+  useEffect(() => {
+    if (!isSignedInNow) return;
+    void resumePendingRenders();
+    // And each time the app comes back to the front.
+    const sub = AppState.addEventListener("change", (next) => {
+      if (next === "active") void resumePendingRenders();
+    });
+    return () => sub.remove();
+  }, [isSignedInNow]);
   if (!isReady) return null;
 
   const isSignedIn = account.status === "signed-in";
@@ -52,6 +65,8 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="pack/[id]" options={pageHeader} />
           <Stack.Screen name="swap/[id]" options={pageHeader} />
+          <Stack.Screen name="capture/[pack]" options={pageHeader} />
+          <Stack.Screen name="studio/[id]" options={pageHeader} />
         </Stack.Protected>
         <Stack.Protected guard={!isSignedIn}>
           <Stack.Screen name="sign-in" />
