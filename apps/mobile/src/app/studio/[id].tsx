@@ -1,9 +1,9 @@
-import { fitsPart, getPack, MAX_SWAPS_PER_PICTURE, STUDIO_OPTIONS, studioParts, type SelectionInput } from "@retrofit/core";
+import { fitsPart, getPack, MAX_SWAPS_PER_PICTURE, STUDIO_OPTIONS, studioParts } from "@retrofit/core";
 import { Image } from "expo-image";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/button";
 import { CompareSlider } from "@/components/compare-slider";
@@ -12,15 +12,16 @@ import { getBuild, type Build } from "@/lib/builds";
 import { API_URL } from "@/lib/config";
 import { BUY_SOON } from "@/lib/packs";
 import { forgetPending, reloadSoon, rememberPending, startRender, waitForRender } from "@/lib/render";
-import { cachedSearch, FITS, searchStore, type Fit, type LiveProduct, type SearchResult } from "@/lib/store-search";
+import { preselectChoices, type Chosen } from "@/lib/preselect";
+import { makeShareLink, SHARE_TEXT, sharePicture, type ShareJob } from "@/lib/share";
+import { cachedSearch, FITS, loadLiveProducts, searchStore, type Fit, type LiveProduct, type SearchResult } from "@/lib/store-search";
 import { account, useAccount } from "@/lib/use-account";
 import { colors, fonts, radius, space } from "@/theme";
 
-type Chosen = { input: SelectionInput; label: string; product?: LiveProduct };
 type RenderState =
   | { kind: "idle" }
   | { kind: "rendering"; labels: string[] }
-  | { kind: "done"; imageUrl: string; picks: Chosen[] }
+  | { kind: "done"; imageUrl: string; picks: Chosen[]; job: ShareJob }
   | { kind: "failed"; message: string };
 
 const FIT_LABELS: Record<Fit, string> = { women: "Women", men: "Men", any: "Any" };
@@ -46,6 +47,19 @@ function Studio({ build }: { build: Build }) {
   const me = useAccount();
   const [activeId, setActiveId] = useState(parts[0]?.id ?? "");
   const [chosen, setChosen] = useState<Record<string, Chosen>>({});
+  // "Swap more": put the saved swap's picks back once, after its store products load.
+  useEffect(() => {
+    const selections = build.preselect;
+    if (!selections?.length) return;
+    let isLive = true;
+    const ids = selections.flatMap((s) => ("productId" in s ? [s.productId] : []));
+    void loadLiveProducts(ids).then((live) => {
+      if (isLive) setChosen((now) => (Object.keys(now).length ? now : preselectChoices(build.pack, parts, selections, live)));
+    });
+    return () => {
+      isLive = false;
+    };
+  }, [build, parts]);
   const [fit, setFit] = useState<Fit | undefined>(() => {
     const seen = build.scene.details?.fit;
     return seen === "men" || seen === "women" ? seen : undefined;
@@ -111,7 +125,7 @@ function Studio({ build }: { build: Build }) {
       if (end.status === "done") {
         await forgetPending(jobId);
         reloadSoon();
-        show({ kind: "done", imageUrl: end.imageUrl, picks: used });
+        show({ kind: "done", imageUrl: end.imageUrl, picks: used, job: { jobId, jobToken } });
       } else if (end.status === "failed") {
         await forgetPending(jobId);
         void account.refreshCredits(); // the swap came back
@@ -164,7 +178,7 @@ function Studio({ build }: { build: Build }) {
           )}
         </View>
 
-        {render.kind === "done" ? <DonePanel picks={render.picks} /> : null}
+        {render.kind === "done" ? <DonePanel build={build} job={render.job} picks={render.picks} /> : null}
         {render.kind === "failed" ? <Text style={[styles.padded, styles.notice]}>{render.message}</Text> : null}
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
@@ -312,11 +326,33 @@ function StoreRow({
 }
 
 /** After a swap: where it's saved, and the real products in it, each with its store link. */
-function DonePanel({ picks }: { picks: Chosen[] }) {
+function DonePanel({ build, job, picks }: { build: Build; job: ShareJob; picks: Chosen[] }) {
   const products = picks.flatMap((p) => (p.product ? [p.product] : []));
+  const [busy, setBusy] = useState<"picture" | "link" | null>(null);
+  const [linkUrl, setLinkUrl] = useState<string | null>(null);
+
+  const onPicture = async () => {
+    setBusy("picture");
+    const error = await sharePicture(build, job);
+    setBusy(null);
+    if (error) Alert.alert("Couldn't share", error);
+  };
+  const onLink = async () => {
+    if (linkUrl) return void Share.share({ url: linkUrl, message: SHARE_TEXT }).catch(() => {});
+    setBusy("link");
+    const result = await makeShareLink(build, job, picks.map((p) => p.input));
+    setBusy(null);
+    if ("error" in result) Alert.alert("Couldn't make the link", result.error);
+    else setLinkUrl(result.url);
+  };
+
   return (
     <View style={[styles.padded, styles.done]}>
       <Text style={styles.small}>Saved to My swaps.</Text>
+      <Button label="Share the picture" isBusy={busy === "picture"} disabled={busy !== null} onPress={() => void onPicture()} />
+      <Text style={styles.small}>One image with both photos. Only people you send it to see it.</Text>
+      <Button label={linkUrl ? "Share the link again" : "Make a link"} variant="quiet" isBusy={busy === "link"} disabled={busy !== null} onPress={() => void onLink()} />
+      <Text style={styles.small}>A page anyone with the link can see, with a &ldquo;Try this on me&rdquo; button. It stays up until you delete it on the website.</Text>
       {products.length ? (
         <>
           <Text style={styles.heading}>Shop this look</Text>

@@ -1,7 +1,10 @@
 import { getPack } from "@retrofit/core";
-import { Stack, useLocalSearchParams } from "expo-router";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { router, Stack, useLocalSearchParams } from "expo-router";
+import { useState } from "react";
+import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Button } from "@/components/button";
 import { CompareSlider } from "@/components/compare-slider";
+import { reopenSaved } from "@/lib/builds";
 import { findRender } from "@/lib/use-renders";
 import { colors, fonts, radius, space } from "@/theme";
 
@@ -9,6 +12,7 @@ import { colors, fonts, radius, space } from "@/theme";
 export default function SwapViewer() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const render = typeof id === "string" ? findRender(id) : undefined;
+  const [isOpening, setIsOpening] = useState(false);
 
   if (!render) {
     return (
@@ -30,6 +34,19 @@ export default function SwapViewer() {
         style={[styles.frame, { aspectRatio: render.width / render.height }]}
       />
       <Text style={styles.help}>Drag the picture to compare.</Text>
+      {render.canReopen ? (
+        <Button
+          label="Swap more"
+          isBusy={isOpening}
+          onPress={async () => {
+            setIsOpening(true);
+            const opened = await reopenSaved(render.jobId);
+            setIsOpening(false);
+            if ("error" in opened) return Alert.alert("Couldn't open this photo", opened.error);
+            router.push({ pathname: "/studio/[id]", params: { id: opened.id } });
+          }}
+        />
+      ) : null}
 
       {render.labels.length ? (
         <View style={styles.changes}>

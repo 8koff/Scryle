@@ -1,5 +1,5 @@
 import { isPackId, type PackId } from "@retrofit/core";
-import { postJson } from "./api";
+import { getApi, postJson } from "./api";
 import { claimOf, type Build } from "./builds";
 
 /** Clothing searches: whose clothes to look for (same values as the web). */
@@ -19,6 +19,8 @@ export type LiveProduct = {
 
 const LIVE_ID = /^live-[a-f0-9]{20}$/;
 const MAX_PRICE_CENTS = 10_000_000;
+/** The server answers at most this many ids at once. */
+const MAX_LOOKUP = 12;
 
 /**
  * Checks one product from the network before showing it. The server already checked it; this
@@ -36,7 +38,16 @@ export function parseLiveProduct(raw: unknown): LiveProduct | null {
   return { id: p.id, pack: p.pack, part: p.part, title: p.title, priceCents: p.priceCents, store: p.store, image: p.image };
 }
 
-export type SearchResult = { status: "ready"; products: LiveProduct[] } | { status: "error"; message: string };
+/** Store products by id (no new search), for "Swap more". Unknown or bad ones are left out. */
+export async function loadLiveProducts(ids: string[]): Promise<LiveProduct[]> {
+  const wanted = [...new Set(ids.filter((id) => LIVE_ID.test(id)))].slice(0, MAX_LOOKUP);
+  if (!wanted.length) return [];
+  const result = await getApi<unknown[]>(`/api/shop/products?ids=${wanted.join(",")}`);
+  if (result.status === "error" || !Array.isArray(result.data)) return [];
+  return result.data.map(parseLiveProduct).filter((p): p is LiveProduct => p !== null);
+}
+
+export type SearchResult ={ status: "ready"; products: LiveProduct[] } | { status: "error"; message: string };
 
 /** Searches already made, so going back to a part doesn't spend another search. */
 const found = new Map<string, LiveProduct[]>();

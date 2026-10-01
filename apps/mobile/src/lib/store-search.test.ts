@@ -2,7 +2,7 @@ import type { Build } from "./builds";
 import { parseLiveProduct, searchStore } from "./store-search";
 
 const mockPostJson = jest.fn();
-jest.mock("./api", () => ({ postJson: (...args: unknown[]) => mockPostJson(...args) }));
+jest.mock("./api", () => ({ postJson: (...args: unknown[]) => mockPostJson(...args), getApi: jest.fn() }));
 
 const good = {
   id: "live-0123456789abcdef0123",
@@ -86,5 +86,32 @@ describe("searchStore", () => {
     mockPostJson.mockResolvedValueOnce({ status: "ready", data: {} });
 
     expect(await searchStore(newBuild(), "art", "any")).toEqual({ status: "ready", products: [] });
+  });
+});
+
+describe("loadLiveProducts", () => {
+  const { getApi } = jest.requireMock("./api") as { getApi: jest.Mock };
+  const { loadLiveProducts } = jest.requireActual("./store-search") as typeof import("./store-search");
+
+  beforeEach(() => getApi.mockReset());
+
+  test("asks only for real store ids, once each, and keeps good products", async () => {
+    getApi.mockResolvedValueOnce({ status: "ready", data: [good, { id: "bad" }] });
+
+    const products = await loadLiveProducts([good.id, good.id, "sample-sofa"]);
+
+    expect(getApi).toHaveBeenCalledWith(`/api/shop/products?ids=${good.id}`);
+    expect(products).toEqual([good]);
+  });
+
+  test("no store ids: no request", async () => {
+    expect(await loadLiveProducts(["sample-sofa"])).toEqual([]);
+    expect(getApi).not.toHaveBeenCalled();
+  });
+
+  test("a failed lookup gives no products, not an error", async () => {
+    getApi.mockResolvedValueOnce({ status: "error", message: "offline" });
+
+    expect(await loadLiveProducts([good.id])).toEqual([]);
   });
 });
