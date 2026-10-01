@@ -86,6 +86,23 @@ p {
   line-height: 0.96;
 }
 
+/* The waitlist page (chosen 2026-09-30): light warm paper with the same denim, only inside this wrapper.
+   Denim on the paper: 5.4:1; muted text: 5.8:1. */
+.theme-paper {
+  --bg: #f3f0ea;
+  --surface: #fbfaf6;
+  --surface-2: #e8e3d9;
+  --fg: #161513;
+  --muted: #625e57;
+  --line: #d8d2c6;
+  --accent: #3d63a8;
+  --accent-2: #33558f;
+  --on-accent: #ffffff;
+  --accent-ink: #3d63a8;
+  --accent-ink-2: #2c4a80;
+  color-scheme: light;
+}
+
 /* Terms and Privacy: plain paragraphs and bullet lists with room to breathe. */
 .legal-body > * + * {
   margin-top: 0.85rem;
