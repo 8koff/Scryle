@@ -6,7 +6,7 @@ recent work and decisions, and [`CONTRIBUTING.md`](CONTRIBUTING.md) is the short
 
 ## 1. What Scryle is
 
-Scryle is a web app at **https://scryapp.io**. You take a photo of something (an outfit, a car, a room, or anything),
+Scryle is a web app at **https://scryle.app**. You take a photo of something (an outfit, a car, a room, or anything),
 tap a part of it (the jacket, the wheels, the sofa), and swap that part for a real product you can buy. An AI model
 draws the "after" picture so you can see it before you buy it.
 

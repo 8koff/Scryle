@@ -46,7 +46,7 @@ export default async function OpenGraphImage() {
               <span>Tap it.</span>
               <span style={{ color: DENIM }}>Swap it.</span>
             </div>
-            <div style={{ fontSize: 28, fontWeight: 500, color: MUTED }}>Join the waitlist at scryapp.io</div>
+            <div style={{ fontSize: 28, fontWeight: 500, color: MUTED }}>Join the waitlist at scryle.app</div>
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 560 }}>

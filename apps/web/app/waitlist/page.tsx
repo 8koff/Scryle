@@ -96,7 +96,7 @@ export default async function WaitlistPage({ searchParams }: PageProps<"/waitlis
               Privacy
             </Link>
             <Link href="/" className="transition-colors hover:text-fg">
-              scryapp.io
+              scryle.app
             </Link>
           </nav>
         </div>
