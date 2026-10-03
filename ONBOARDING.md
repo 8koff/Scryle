@@ -144,7 +144,9 @@ This repo is public. Assume attackers read every line.
 4. Open a pull request and fill in the template. CI must pass and one maintainer must approve.
 5. Database changes: add a **new** numbered file in `supabase/migrations/` (never edit an old one), and add it to
    `supabase/setup-all.sql`. Say in the PR that it needs to be run on production; only the owner does that.
-6. Only the owner deploys to production.
+6. Production deploys by itself: Vercel is connected to GitHub, so every pull request merged into `main` goes live.
+   Never deploy with the Vercel CLI or from a local folder. A folder can hold unfinished or private work, and a CLI
+   deploy uploads all of it. Only the owner merges.
 
 ## 9. Glossary
 
