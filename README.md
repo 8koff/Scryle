@@ -3,7 +3,7 @@
 **See it before you buy it.** Scan an outfit, a car or a room, tap any part, and swap it for a real product you can
 buy. An AI model draws the result first.
 
-Live at **https://scryapp.io**.
+Live at **https://scryle.app**.
 
 ## Quick start
 

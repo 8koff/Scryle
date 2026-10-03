@@ -18,7 +18,7 @@ Please give us a fair chance to fix it before you share details publicly.
 
 ## Scope
 
-In scope: this repository's code and the live site at https://scryapp.io.
+In scope: this repository's code and the live site at https://scryle.app.
 
 Out of scope: problems in third-party services themselves (Supabase, Stripe, Vercel, Anthropic, Higgsfield,
 SerpApi), denial of service by traffic volume, social engineering, and findings that need a compromised device.

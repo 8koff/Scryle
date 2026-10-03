@@ -32,6 +32,10 @@ const sections: LegalSection[] = [
           <strong>Reports</strong>: what you write when you report a picture, and your email if you give it.
         </li>
         <li>
+          <strong>Waitlist</strong>: if you join the waitlist, your email address, and where you found the link if the
+          link says so.
+        </li>
+        <li>
           <strong>Technical data</strong>: to stop abuse we count requests per visitor. We store the IP address only as a
           scrambled code and delete those counts after a day. Our host keeps normal server logs.
         </li>
@@ -52,6 +56,7 @@ const sections: LegalSection[] = [
         <li>To keep the service safe: limits, the safety filter, checking reports, and stopping misuse.</li>
         <li>We don&rsquo;t use your photos to train AI.</li>
         <li>To answer you when you write to us.</li>
+        <li>If you joined the waitlist: to email you when your early access is ready. Nothing else.</li>
       </ul>
     ),
   },
@@ -114,6 +119,9 @@ const sections: LegalSection[] = [
           Stripe keeps its own payment records, as tax law requires.
         </li>
         <li>Reports are kept as a record of what we checked and removed.</li>
+        <li>
+          Waitlist emails are kept until you ask us to take yours off. Write to <ContactEmail /> for that.
+        </li>
       </ul>
     ),
   },
