@@ -5,7 +5,7 @@
 const trimmed = (value: string | undefined) => value?.trim().replace(/\/+$/, "") || undefined;
 
 /** The live site. Every API call goes here. */
-export const API_URL = trimmed(process.env.EXPO_PUBLIC_API_URL) ?? "https://scryapp.io";
+export const API_URL = trimmed(process.env.EXPO_PUBLIC_API_URL) ?? "https://scryle.app";
 
 /** Accepts the API form people often copy ("…supabase.co/rest/v1/") too, like the web app. */
 export const SUPABASE_URL = trimmed(process.env.EXPO_PUBLIC_SUPABASE_URL)?.replace(/\/rest\/v1$/, "");

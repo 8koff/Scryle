@@ -63,7 +63,7 @@ The app sells the same 3 packs as the website, through Apple. Buying does not wo
    | `io.scryapp.credits.pro` | $19.99 | 150 swaps |
 
 4. **App Store Connect → your app → App Information → App Store Server Notifications**: set Production and Sandbox URLs to
-   `https://scryapp.io/api/apple/notifications`, version 2. Refunds then take the swaps back.
+   `https://scryle.app/api/apple/notifications`, version 2. Refunds then take the swaps back.
 5. **Vercel → Environment Variables** (production):
    - `APPLE_BUNDLE_ID` = `io.scryapp.app`
    - `APPLE_APP_ID` = the app's numeric Apple ID (App Information → Apple ID)
