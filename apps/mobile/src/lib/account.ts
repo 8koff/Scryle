@@ -181,6 +181,22 @@ export function createAccountStore({
       return "That code is wrong or too old. Check it, or send a new email.";
     },
 
+    /**
+     * Email and password. Only the App Review demo account has a password (the owner makes it in
+     * Supabase): Apple's reviewers can't receive email codes. Returns an error message, or null.
+     */
+    async signInWithPassword(email: string, password: string): Promise<string | null> {
+      const client = getClient();
+      if (!client) return NOT_READY;
+      const clean = email.trim();
+      if (!clean || !password) return "Type your email and password.";
+      const { error } = await client.auth.signInWithPassword({ email: clean, password });
+      if (!error) return null;
+      if (error.status === 429) return "Too many tries. Please wait a minute and try again.";
+      if (!error.status) return OFFLINE;
+      return "That email or password is wrong.";
+    },
+
     /** Apple's native sheet, then Supabase. Returns an error message, or null (also when closed). */
     async signInWithApple(): Promise<string | null> {
       const client = getClient();

@@ -18,6 +18,7 @@ function fakeClient(initial: Session | null = null) {
     signInWithOtp: jest.fn(async (): Promise<{ error: { status?: number } | null }> => ({ error: null })),
     verifyOtp: jest.fn(async (): Promise<{ error: { status?: number } | null }> => ({ error: null })),
     signInWithIdToken: jest.fn(async (): Promise<{ error: { status?: number } | null }> => ({ error: null })),
+    signInWithPassword: jest.fn(async (): Promise<{ error: { status?: number } | null }> => ({ error: null })),
     getUser: jest.fn(async () => ({ data: { user: { user_metadata: {} as Record<string, unknown> } } })),
     updateUser: jest.fn(async () => ({ error: null })),
     signOut: jest.fn(async () => ({ error: null })),
@@ -154,6 +155,24 @@ describe("createAccountStore", () => {
 
     expect(await store.sendCode(" a@b.co ")).toMatch(/wait a minute/);
     expect(auth.signInWithOtp).toHaveBeenCalledWith({ email: "a@b.co", options: { shouldCreateUser: true } });
+  });
+
+  test("signInWithPassword trims the email and maps errors to friendly messages", async () => {
+    const { store, auth } = makeStore();
+
+    expect(await store.signInWithPassword("  ", "pw")).toBe("Type your email and password.");
+    expect(await store.signInWithPassword("a@b.co", "")).toBe("Type your email and password.");
+    expect(auth.signInWithPassword).not.toHaveBeenCalled();
+
+    expect(await store.signInWithPassword(" review@b.co ", "pw")).toBeNull();
+    expect(auth.signInWithPassword).toHaveBeenCalledWith({ email: "review@b.co", password: "pw" });
+
+    auth.signInWithPassword.mockResolvedValueOnce({ error: { status: 400 } });
+    expect(await store.signInWithPassword("a@b.co", "bad")).toBe("That email or password is wrong.");
+    auth.signInWithPassword.mockResolvedValueOnce({ error: { status: 429 } });
+    expect(await store.signInWithPassword("a@b.co", "bad")).toMatch(/wait a minute/);
+    auth.signInWithPassword.mockResolvedValueOnce({ error: {} });
+    expect(await store.signInWithPassword("a@b.co", "pw")).toMatch(/Couldn't reach sign-in/);
   });
 
   test("verifyCode keeps only digits and needs at least 6", async () => {

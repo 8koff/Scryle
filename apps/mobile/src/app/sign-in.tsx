@@ -7,12 +7,16 @@ import { MAX_CODE_LENGTH } from "@/lib/account";
 import { account, useAccount } from "@/lib/use-account";
 import { colors, display, fonts, radius, space } from "@/theme";
 
-/** Sign in with Apple, or with a code sent by email. New emails get a new account. */
+/**
+ * Sign in with Apple, or with a code sent by email. New emails get a new account.
+ * "Use a password" is for the App Review demo account: Apple's reviewers can't get email codes.
+ */
 export default function SignIn() {
   const state = useAccount();
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
-  const [step, setStep] = useState<"email" | "code">("email");
+  const [password, setPassword] = useState("");
+  const [step, setStep] = useState<"email" | "code" | "password">("email");
   const [error, setError] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
 
@@ -29,6 +33,13 @@ export default function SignIn() {
     } finally {
       setIsBusy(false);
     }
+  };
+
+  const goTo = (next: typeof step) => {
+    setStep(next);
+    setCode("");
+    setPassword("");
+    setError(null);
   };
 
   if (state.status === "unavailable") {
@@ -73,6 +84,36 @@ export default function SignIn() {
               accessibilityLabel="Email"
             />
             <Button label="Email me a code" isBusy={isBusy} onPress={() => void run(() => account.sendCode(email), () => setStep("code"))} />
+            <Button label="Use a password" variant="quiet" onPress={() => goTo("password")} />
+          </View>
+        ) : step === "password" ? (
+          <View style={styles.form}>
+            <TextInput
+              value={email}
+              onChangeText={setEmail}
+              placeholder="you@example.com"
+              placeholderTextColor={colors.muted}
+              autoCapitalize="none"
+              autoComplete="email"
+              keyboardType="email-address"
+              textContentType="username"
+              style={styles.input}
+              accessibilityLabel="Email"
+            />
+            <TextInput
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Password"
+              placeholderTextColor={colors.muted}
+              secureTextEntry
+              autoCapitalize="none"
+              autoComplete="current-password"
+              textContentType="password"
+              style={styles.input}
+              accessibilityLabel="Password"
+            />
+            <Button label="Sign in" isBusy={isBusy} onPress={() => void run(() => account.signInWithPassword(email, password))} />
+            <Button label="Use an email code instead" variant="quiet" onPress={() => goTo("email")} />
           </View>
         ) : (
           <View style={styles.form}>
@@ -90,15 +131,7 @@ export default function SignIn() {
               accessibilityLabel="Code from the email"
             />
             <Button label="Sign in" isBusy={isBusy} onPress={() => void run(() => account.verifyCode(email, code))} />
-            <Button
-              label="Use another email"
-              variant="quiet"
-              onPress={() => {
-                setStep("email");
-                setCode("");
-                setError(null);
-              }}
-            />
+            <Button label="Use another email" variant="quiet" onPress={() => goTo("email")} />
           </View>
         )}
         {error ? (

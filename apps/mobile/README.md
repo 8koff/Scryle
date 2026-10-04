@@ -48,6 +48,17 @@ npx expo lint
 - **Clothing** is live camera only and asks for 18+, the same as the web. Keep that in the app: the server can't tell a camera photo from an upload.
 - Build plan and decisions: see the "iOS app" pull requests.
 
+## App Review demo account: owner setup
+
+Apple's reviewers can't receive email codes, so they sign in with a password ("Use a password" on the sign-in screen).
+Only accounts with a password can use it; normal accounts have none.
+
+1. **Supabase → Authentication → Users → Add user → Create new user**: an email you own (for example a `+review`
+   address), a long random password, and tick **Auto Confirm User**.
+2. **App Store Connect → your app → App Review Information → Sign-in required**: enter that email and password.
+3. Give the account a few swaps, or keep `APPLE_ALLOW_SANDBOX=yes` while Apple reviews so test purchases add swaps.
+4. After review, change the password or delete the user.
+
 ## Apple in-app purchase: owner setup
 
 The app sells the same 3 packs as the website, through Apple. Buying does not work in Expo Go; use a development build or TestFlight.
