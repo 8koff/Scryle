@@ -32,7 +32,7 @@ describe("siteOrigin", () => {
   const at = (url: string) => new Request(url);
 
   it("uses the configured site address", () => {
-    expect(siteOrigin(at("https://evil.example/api"), { NEXT_PUBLIC_SITE_URL: "https://scryapp.io/" })).toBe("https://scryapp.io");
+    expect(siteOrigin(at("https://evil.example/api"), { NEXT_PUBLIC_SITE_URL: "https://scryle.app/" })).toBe("https://scryle.app");
   });
 
   it("trusts the request host only on your own computer", () => {
