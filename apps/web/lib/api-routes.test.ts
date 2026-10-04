@@ -18,7 +18,8 @@ function sourceFiles(dir: string): string[] {
  * "/api/render" into "/api/swap" and nothing else noticed.
  */
 describe("API addresses", () => {
-  it("only calls routes that exist", () => {
+  // Reads every source file: give it time when other checks run at the same time (CI, turbo).
+  it("only calls routes that exist", { timeout: 30_000 }, () => {
     const missing = SOURCES.flatMap((dir) => sourceFiles(join(WEB, dir))).flatMap((file) =>
       [...readFileSync(file, "utf8").matchAll(/["'`]\/api\/([a-z0-9-]+)/g)]
         .map((m) => m[1]!)

@@ -1,0 +1,63 @@
+{
+  "expo": {
+    "name": "Scryle",
+    "slug": "scryle",
+    "scheme": "scryle",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#121110",
+    "ios": {
+      "bundleIdentifier": "io.scryapp.app",
+      "supportsTablet": false,
+      "usesAppleSignIn": true,
+      "config": {
+        "usesNonExemptEncryption": false
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-secure-store",
+      "expo-font",
+      "expo-web-browser",
+      "expo-image",
+      "expo-sharing",
+      "expo-apple-authentication",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Scryle uses the camera to take the photo you want to restyle. The photo is only sent when you tap Use this photo.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Scryle lets you pick a photo of a car, room, or object to restyle. Clothing always uses the live camera.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "backgroundColor": "#121110"
+        }
+      ],
+      "expo-iap"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "8b75423d-43be-448c-927a-8f8b5201b067"
+      }
+    },
+    "owner": "8kofff"
+  }
+}

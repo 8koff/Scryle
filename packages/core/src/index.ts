@@ -12,7 +12,10 @@ export { buildRenderPlan, type RenderPlan, type Selection } from "./render/plan"
 export { nearestAspectRatio } from "./render/aspect";
 
 export {
+  APPLE_PRODUCT_PREFIX,
+  appleProductId,
   CREDIT_PACKS,
+  creditPackForAppleProduct,
   creditPack,
   FREE_RENDERS,
   formatUsd,
@@ -22,4 +25,21 @@ export {
   packMargin,
   packSavingPercent,
 } from "./credits";
-export type { CreditPack, CreditPackId } from "./credits";
+export type { CreditPack, CreditPackId, PaymentStore } from "./credits";
+
+export type {
+  ApiErrorCode,
+  ApiResponse,
+  CheckoutDone,
+  CreditsInfo,
+  InviteInfo,
+  RenderCard,
+  RenderStart,
+  RenderStatus,
+  Reopened,
+  ScanResult,
+  SelectionInput,
+} from "./api";
+
+export { fitsPart, STUDIO_OPTIONS, studioParts } from "./studio";
+export type { StudioOption, StudioPart } from "./studio";
