@@ -2,6 +2,8 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import * as Crypto from "expo-crypto";
 import type { AppleCredential } from "./account";
 
+const isCanceled = (error: unknown) => error instanceof Error && "code" in error && error.code === "ERR_REQUEST_CANCELED";
+
 /**
  * Opens Apple's sign-in sheet. Apple signs a hash of a one-time nonce into the token, and
  * Supabase checks it against the raw nonce, so a token can't be replayed.
@@ -22,7 +24,22 @@ export async function appleSignIn(): Promise<AppleCredential> {
     return { identityToken: result.identityToken, rawNonce, name: name || null };
   } catch (error) {
     // The person closed the sheet: not an error.
-    if (error instanceof Error && "code" in error && error.code === "ERR_REQUEST_CANCELED") return null;
+    if (isCanceled(error)) return null;
+    throw error;
+  }
+}
+
+/**
+ * Asks Apple for a fresh one-time code (it lasts 5 minutes). Deleting an account sends it so
+ * the server can disconnect Sign in with Apple. Null when the person closed the sheet.
+ */
+export async function appleAuthorizationCode(): Promise<string | null> {
+  try {
+    const result = await AppleAuthentication.signInAsync({ requestedScopes: [] });
+    if (!result.authorizationCode) throw new Error("Apple sent no authorization code.");
+    return result.authorizationCode;
+  } catch (error) {
+    if (isCanceled(error)) return null;
     throw error;
   }
 }

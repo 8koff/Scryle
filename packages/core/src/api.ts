@@ -8,8 +8,8 @@ import type { SceneAnalysis } from "./scene/schema";
 /** Every API route answers with this envelope. */
 export type ApiResponse<T> = { success: true; data: T } | { success: false; error: string; code?: ApiErrorCode };
 
-/** Lets the app react to an error: show sign-in, or show the credit packs. */
-export type ApiErrorCode = "sign_in" | "no_credits";
+/** Lets the app react to an error: show sign-in, show the credit packs, or confirm with Apple. */
+export type ApiErrorCode = "sign_in" | "no_credits" | "apple_confirm";
 
 /** One swap the person picked: a store product, or a text-only change (paint, tint, wall colour). */
 export type SelectionInput = { partId: string; productId: string } | { partId: string; text: string };

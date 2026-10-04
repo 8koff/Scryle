@@ -1,7 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { accountName, createAccountStore, type AppleCredential } from "./account";
+import { accountName, createAccountStore, usesApple, type AppleCredential } from "./account";
 
-type Session = { access_token: string; user: { id?: string; email?: string; user_metadata?: Record<string, unknown> } };
+type Session = {
+  access_token: string;
+  user: { id?: string; email?: string; user_metadata?: Record<string, unknown>; app_metadata?: Record<string, unknown> };
+};
 
 /** Just the parts of the Supabase client the store uses. */
 function fakeClient(initial: Session | null = null) {
@@ -47,6 +50,18 @@ describe("accountName", () => {
   });
 });
 
+describe("usesApple", () => {
+  test("is true when Apple is one of the account's sign-in ways", () => {
+    expect(usesApple({ provider: "email", providers: ["email", "apple"] })).toBe(true);
+    expect(usesApple({ provider: "apple" })).toBe(true);
+  });
+
+  test("is false for email-only accounts and missing data", () => {
+    expect(usesApple({ provider: "email", providers: ["email"] })).toBe(false);
+    expect(usesApple(undefined)).toBe(false);
+  });
+});
+
 describe("createAccountStore", () => {
   test("is unavailable when sign-in keys are missing", () => {
     const store = createAccountStore({ getClient: () => null, apiUrl: "x", appleSignIn: async () => null });
@@ -54,12 +69,19 @@ describe("createAccountStore", () => {
     expect(store.getSnapshot()).toEqual({ status: "unavailable" });
   });
 
+  test("knows when the account signs in with Apple", async () => {
+    const { store } = makeStore({ session: { access_token: "t", user: { id: "u1", app_metadata: { providers: ["apple"] } } } });
+    await flush();
+
+    expect(store.getSnapshot()).toMatchObject({ status: "signed-in", hasApple: true });
+  });
+
   test("signs in from a saved session and loads credits with the Bearer token", async () => {
     const { store, fetcher } = makeStore({ session: { access_token: "tok_123", user: { id: "u1", email: "a@b.co" } } });
     await flush();
     await flush();
 
-    expect(store.getSnapshot()).toEqual({ status: "signed-in", userId: "u1", email: "a@b.co", name: null, credits: 1 });
+    expect(store.getSnapshot()).toEqual({ status: "signed-in", userId: "u1", email: "a@b.co", name: null, credits: 1, hasApple: false });
     const [url, init] = fetcher.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("https://example.test/api/credits");
     expect(new Headers(init.headers).get("Authorization")).toBe("Bearer tok_123");

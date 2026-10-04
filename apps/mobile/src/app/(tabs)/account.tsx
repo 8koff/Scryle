@@ -6,6 +6,7 @@ import { forgetInvite, InviteCard } from "@/components/invite-card";
 import { LegalLinks } from "@/components/legal-links";
 import { SwapsLeft } from "@/components/swaps-left";
 import { getApi } from "@/lib/api";
+import { appleAuthorizationCode } from "@/lib/apple";
 import { clearPending } from "@/lib/render";
 import { account, useAccount } from "@/lib/use-account";
 import { resetRenders } from "@/lib/use-renders";
@@ -27,15 +28,32 @@ export default function Account() {
     }
   };
 
+  /** Apple accounts confirm with Apple first, so the server can disconnect Sign in with Apple. */
+  const appleCode = async (isAppleAccount: boolean): Promise<string | null | undefined> => {
+    if (!isAppleAccount) return undefined;
+    try {
+      const code = await appleAuthorizationCode();
+      if (!code) Alert.alert("Confirm with Apple", "To delete your account, confirm with Apple so we can disconnect it too.");
+      return code;
+    } catch {
+      Alert.alert("Couldn't open Apple", "Please try again.");
+      return null;
+    }
+  };
+
   // Apple requires deleting the account inside the app. Same server flow as the web.
-  const deleteAccount = async () => {
+  // The server has the last word on Apple accounts: this phone's copy can be out of date.
+  const deleteAccount = async (isAppleAccount = state.hasApple): Promise<void> => {
     setIsDeleting(true);
+    const code = await appleCode(isAppleAccount);
+    if (code === null) return setIsDeleting(false);
     const result = await getApi<unknown>("/api/account", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ confirm: "delete" }),
+      body: JSON.stringify({ confirm: "delete", appleAuthorizationCode: code }),
     });
     setIsDeleting(false);
+    if (result.status === "error" && result.code === "apple_confirm" && !isAppleAccount) return deleteAccount(true);
     if (result.status === "error") return Alert.alert("Couldn't delete your account", result.message);
     await signOut();
   };

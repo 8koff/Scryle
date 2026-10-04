@@ -13,10 +13,12 @@ export type Account =
       email: string | undefined;
       name: string | null;
       credits: number | null;
+      /** Signed in with Apple at least once. Deleting the account must then disconnect Apple. */
+      hasApple: boolean;
     };
 
 type Metadata = Record<string, unknown> | undefined;
-type SessionLike = { access_token: string; user: { id: string; email?: string; user_metadata?: Metadata } };
+type SessionLike = { access_token: string; user: { id: string; email?: string; user_metadata?: Metadata; app_metadata?: Metadata } };
 type Listener = () => void;
 
 /** What Apple's sign-in sheet gives back. Null when the person closed the sheet. */
@@ -39,11 +41,17 @@ export function accountName(meta: Metadata): string | null {
   return text(meta?.display_name) ?? text(meta?.full_name) ?? text(meta?.name);
 }
 
+/** Supabase lists every way an account has signed in under app_metadata.providers. */
+export function usesApple(meta: Metadata): boolean {
+  const providers = meta?.providers;
+  return Array.isArray(providers) ? providers.includes("apple") : meta?.provider === "apple";
+}
+
 /** True when nothing a screen shows has changed (token refreshes don't count). */
 export function isSameAccount(a: Account, b: Account): boolean {
   if (a.status !== b.status) return false;
   if (a.status !== "signed-in" || b.status !== "signed-in") return true;
-  return a.userId === b.userId && a.email === b.email && a.name === b.name && a.credits === b.credits;
+  return a.userId === b.userId && a.email === b.email && a.name === b.name && a.credits === b.credits && a.hasApple === b.hasApple;
 }
 
 /**
@@ -108,7 +116,14 @@ export function createAccountStore({
     token = session?.access_token ?? null;
     if (!session) return set({ status: "signed-out" });
     const credits = state.status === "signed-in" ? state.credits : null;
-    set({ status: "signed-in", userId: session.user.id, email: session.user.email, name: accountName(session.user.user_metadata), credits });
+    set({
+      status: "signed-in",
+      userId: session.user.id,
+      email: session.user.email,
+      name: accountName(session.user.user_metadata),
+      credits,
+      hasApple: usesApple(session.user.app_metadata),
+    });
     // The first /api/credits call also gives a new account its free swap.
     if (!wasSignedIn) void refreshCredits();
   };
