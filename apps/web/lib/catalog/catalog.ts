@@ -1,4 +1,4 @@
-import { isPackId, type PackId } from "@retrofit/core";
+import { fitsPart, isPackId, STUDIO_OPTIONS, type PackId } from "@retrofit/core";
 import { z } from "zod";
 import catalogFile from "./products.json";
 
@@ -72,62 +72,10 @@ export function loadCatalog(raw: unknown): CatalogProduct[] {
   });
 }
 
-const sample = (id: string, pack: PackId, part: string, title: string, image: string): Product => ({
-  id,
-  pack,
-  part,
-  title,
-  kind: "sample",
-  image,
-});
+// The samples and colours are shared with the iOS app (@retrofit/core); the catalog is web-only.
+export const PRODUCTS: readonly Product[] = [...loadCatalog(catalogFile), ...STUDIO_OPTIONS];
 
-const colour = (pack: PackId, part: string, title: string, swatch: string): Product => ({
-  id: `${pack}-${part}-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
-  pack,
-  part,
-  title,
-  kind: "colour",
-  swatch,
-});
-
-export const PRODUCTS: readonly Product[] = [
-  ...loadCatalog(catalogFile),
-  sample("sample-bomber", "clothing", "outerwear", "Black leather bomber jacket", "/demo/product-jacket.jpg"),
-  sample("sample-cargo", "clothing", "bottoms", "Olive cargo pants", "/demo/product-cargo.jpg"),
-  sample("sample-runners", "clothing", "shoes", "White and green retro running sneakers", "/demo/product-sneakers.jpg"),
-  sample("sample-wheels", "car", "wheels", "Gloss black 10-spoke alloy wheels", "/demo/product-wheel.jpg"),
-  sample("sample-sofa", "room", "sofa", "Emerald green velvet sofa with brass legs", "/demo/product-sofa.jpg"),
-
-  colour("car", "paint", "Gloss black paint", "#101112"),
-  colour("car", "paint", "Satin grey paint", "#7b7f82"),
-  colour("car", "paint", "Pearl white paint", "#eeece6"),
-  colour("car", "paint", "Midnight blue metallic paint", "#1c2a4a"),
-  colour("car", "paint", "Racing red paint", "#b3171b"),
-  colour("car", "paint", "Deep green metallic paint", "#1f3d2b"),
-  colour("car", "tint", "Light window tint (50%)", "#5b6168"),
-  colour("car", "tint", "Medium window tint (35%)", "#3c4046"),
-  colour("car", "tint", "Dark window tint (20%)", "#23262a"),
-  colour("car", "tint", "Limo window tint (5%)", "#0d0e10"),
-
-  colour("room", "wall-colour", "Warm white matte paint", "#f1ece2"),
-  colour("room", "wall-colour", "Sage green matte paint", "#a7b39a"),
-  colour("room", "wall-colour", "Terracotta matte paint", "#b8674a"),
-  colour("room", "wall-colour", "Deep navy matte paint", "#23304a"),
-  colour("room", "wall-colour", "Soft black matte paint", "#2b2a28"),
-  colour("room", "wall-colour", "Blush pink matte paint", "#e3c2bb"),
-];
-
-/** Parts that can stand in for each other: a jacket can replace a hoodie, and the reverse. */
-const RELATED: Partial<Record<PackId, Record<string, string[]>>> = {
-  clothing: { top: ["top", "outerwear"], outerwear: ["outerwear", "top"] },
-};
-
-/** True when this product may be put on this part of the photo. */
-export function fitsPart(product: Product, pack: PackId, part: string): boolean {
-  if (product.pack !== pack) return false;
-  const accepted = RELATED[pack]?.[part] ?? [part];
-  return accepted.includes(product.part);
-}
+export { fitsPart };
 
 export function productsFor(pack: PackId, part: string): Product[] {
   return PRODUCTS.filter((p) => fitsPart(p, pack, part));

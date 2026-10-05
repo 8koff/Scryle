@@ -52,4 +52,26 @@ describe("deleteAccount", () => {
     await expect(deleteAccount("u1", { shares, renders: failing, deleteUser })).rejects.toThrow("storage down");
     expect(deleteUser).not.toHaveBeenCalled();
   });
+
+  it("disconnects Sign in with Apple before anything is deleted", async () => {
+    const { shares, renders } = await setup();
+    const order: string[] = [];
+    const disconnectApple = vi.fn(async () => void order.push("apple"));
+    const deleteUser = vi.fn(async () => void order.push("user"));
+
+    await deleteAccount("u1", { shares, renders, deleteUser, disconnectApple });
+
+    expect(order).toEqual(["apple", "user"]);
+  });
+
+  it("deletes nothing when Apple can't be disconnected", async () => {
+    const { shares, renders } = await setup();
+    const deleteUser = vi.fn(async () => {});
+    const disconnectApple = vi.fn(async () => Promise.reject(new Error("apple down")));
+
+    await expect(deleteAccount("u1", { shares, renders, deleteUser, disconnectApple })).rejects.toThrow("apple down");
+    expect(await shares.listByOwner("u1")).toHaveLength(2);
+    expect([...renders.files.keys()].some((k) => k.startsWith("u1/"))).toBe(true);
+    expect(deleteUser).not.toHaveBeenCalled();
+  });
 });

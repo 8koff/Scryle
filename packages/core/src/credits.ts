@@ -43,12 +43,31 @@ export function packSavingPercent(pack: CreditPack): number {
   return Math.max(0, Math.floor(saving * 100 + 1e-9));
 }
 
-/** Stripe card fee: 2.9% + 30¢. */
-const stripeFeeCents = (priceCents: number) => priceCents * 0.029 + 30;
+/**
+ * The iOS app sells the same packs through Apple, at the same prices. Each pack is one
+ * consumable product in App Store Connect with this id ("io.scryapp.credits.starter").
+ */
+export const APPLE_PRODUCT_PREFIX = "io.scryapp.credits.";
+
+export const appleProductId = (pack: CreditPack) => `${APPLE_PRODUCT_PREFIX}${pack.id}`;
+
+/** The pack an App Store product id sells, or undefined for any other id. */
+export function creditPackForAppleProduct(productId: string): CreditPack | undefined {
+  if (!productId.startsWith(APPLE_PRODUCT_PREFIX)) return undefined;
+  return creditPack(productId.slice(APPLE_PRODUCT_PREFIX.length));
+}
+
+export type PaymentStore = "stripe" | "apple";
+
+/** Stripe card fee: 2.9% + 30¢. Apple: 15% (App Store Small Business Program). */
+const feeCents: Record<PaymentStore, (priceCents: number) => number> = {
+  stripe: (priceCents) => priceCents * 0.029 + 30,
+  apple: (priceCents) => priceCents * 0.15,
+};
 
 /** Share of the price we keep if every credit is used, at `renderCostCents` per render. */
-export function packMargin(pack: CreditPack, renderCostCents: number): number {
-  const cost = pack.credits * renderCostCents + stripeFeeCents(pack.priceCents);
+export function packMargin(pack: CreditPack, renderCostCents: number, store: PaymentStore = "stripe"): number {
+  const cost = pack.credits * renderCostCents + feeCents[store](pack.priceCents);
   return (pack.priceCents - cost) / pack.priceCents;
 }
 
