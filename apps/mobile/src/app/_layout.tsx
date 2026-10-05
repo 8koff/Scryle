@@ -97,6 +97,7 @@ export default function RootLayout() {
           <Stack.Screen name="pack/[id]" options={pageHeader} />
           <Stack.Screen name="swap/[id]" options={pageHeader} />
           <Stack.Screen name="capture/[pack]" options={pageHeader} />
+          <Stack.Screen name="snap" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
           <Stack.Screen name="studio/[id]" options={pageHeader} />
           <Stack.Screen name="buy" options={{ ...pageHeader, presentation: "modal" }} />
         </Stack.Protected>

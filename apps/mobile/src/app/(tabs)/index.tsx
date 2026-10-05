@@ -2,12 +2,13 @@ import { PACKS, type Pack } from "@retrofit/core";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import { memo } from "react";
-import { FlatList as NativeFlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { FlatList as NativeFlatList, RefreshControl, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 // The gesture-aware list, so dragging a card's slider handle doesn't also swipe the list.
 import { FlatList } from "react-native-gesture-handler";
-import { CompareSlider } from "@/components/compare-slider";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { CompareSlider } from "@/components/compare-slider";
 import { InviteCard } from "@/components/invite-card";
+import { PressableScale } from "@/components/pressable-scale";
 import { SwapThumb } from "@/components/swap-thumb";
 import { SwapsLeft } from "@/components/swaps-left";
 import { PACK_COVERS } from "@/lib/packs";
@@ -39,6 +40,12 @@ export default function Home() {
           <Text style={styles.hello}>{firstName ? `Hi, ${firstName}` : "Scryle"}</Text>
           <Text style={styles.title}>What do you want to change?</Text>
         </View>
+
+        <View style={styles.padded}>
+          <CameraButton />
+        </View>
+
+        <Text style={[styles.padded, styles.sectionLabel]}>Or start with a category</Text>
 
         <FlatList
           horizontal
@@ -94,14 +101,36 @@ export default function Home() {
   );
 }
 
+/** The main action: camera first, category after (app/snap.tsx). */
+function CameraButton() {
+  return (
+    <PressableScale
+      accessibilityRole="button"
+      accessibilityLabel="Take a photo. Then pick what to change."
+      onPress={() => router.push("/snap")}
+      pressedScale={0.98}
+      style={styles.camera}
+    >
+      <View style={styles.shutter}>
+        <View style={styles.shutterDot} />
+      </View>
+      <View style={styles.cameraText}>
+        <Text style={styles.cameraTitle}>Take a photo</Text>
+        <Text style={styles.cameraBody}>Then pick what to change</Text>
+      </View>
+    </PressableScale>
+  );
+}
+
 const CategoryCard = memo(function CategoryCard({ pack, width, isFirst }: { pack: Pack; width: number; isFirst: boolean }) {
   const cover = PACK_COVERS[pack.id];
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={`${pack.label}. ${pack.tagline}`}
       onPress={() => router.push({ pathname: "/pack/[id]", params: { id: pack.id } })}
-      style={({ pressed }) => [styles.card, { width }, pressed && styles.cardPressed]}
+      pressedScale={0.985}
+      style={[styles.card, { width }]}
     >
       {cover.after ? (
         <CompareSlider
@@ -119,7 +148,7 @@ const CategoryCard = memo(function CategoryCard({ pack, width, isFirst }: { pack
         <Text style={styles.cardBody}>{pack.tagline}</Text>
         <Text style={styles.cardExamples}>{cover.examples}</Text>
       </View>
-    </Pressable>
+    </PressableScale>
   );
 });
 
@@ -136,12 +165,34 @@ const styles = StyleSheet.create({
   title: { ...display, fontSize: 32, lineHeight: 35, marginTop: space.xs },
   carousel: { paddingHorizontal: space.md },
   card: { borderRadius: radius.lg, backgroundColor: colors.surface, overflow: "hidden" },
-  cardPressed: { opacity: 0.85 },
   cardImage: { width: "100%", backgroundColor: colors.surface2 },
   cardText: { padding: space.md, gap: space.xs },
   cardTitle: { fontFamily: fonts.semibold, fontSize: 24, color: colors.fg },
   cardBody: { fontFamily: fonts.regular, fontSize: 16, lineHeight: 22, color: colors.fg },
   cardExamples: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 19, color: colors.muted },
+  camera: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.md,
+    minHeight: 76,
+    paddingHorizontal: space.md,
+    borderRadius: radius.lg,
+    backgroundColor: colors.accent,
+  },
+  shutter: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 3,
+    borderColor: colors.onAccent,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  shutterDot: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.onAccent },
+  cameraText: { flex: 1, gap: 2 },
+  cameraTitle: { fontFamily: fonts.semibold, fontSize: 19, color: colors.onAccent },
+  cameraBody: { fontFamily: fonts.regular, fontSize: 15, color: "rgba(255,255,255,0.82)" },
+  sectionLabel: { fontFamily: fonts.medium, fontSize: 15, color: colors.muted, marginBottom: -space.sm },
   section: { gap: space.sm },
   sectionHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
   sectionTitle: { fontFamily: fonts.semibold, fontSize: 20, color: colors.fg },

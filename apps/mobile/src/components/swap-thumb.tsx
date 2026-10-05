@@ -2,7 +2,8 @@ import { getPack, type RenderCard } from "@retrofit/core";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import { memo } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import { PressableScale } from "@/components/pressable-scale";
 import { thumbSource } from "@/lib/use-renders";
 import { colors, fonts, radius, space } from "@/theme";
 
@@ -13,11 +14,11 @@ export const SwapThumb = memo(function SwapThumb({ render, width }: Props) {
   const packLabel = getPack(render.pack).label;
   const label = render.labels[0] ?? packLabel;
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={`Open swap: ${label}`}
       onPress={() => router.push({ pathname: "/swap/[id]", params: { id: render.jobId } })}
-      style={({ pressed }) => [{ width }, pressed && styles.pressed]}
+      style={{ width }}
     >
       <View style={[styles.frame, { width, height: width * 1.25 }]}>
         {/* A small preview from the server; decoded straight to tile size either way. */}
@@ -34,12 +35,11 @@ export const SwapThumb = memo(function SwapThumb({ render, width }: Props) {
         {label}
       </Text>
       <Text style={styles.meta}>{packLabel}</Text>
-    </Pressable>
+    </PressableScale>
   );
 });
 
 const styles = StyleSheet.create({
-  pressed: { opacity: 0.7 },
   frame: {
     borderRadius: radius.md,
     overflow: "hidden",
