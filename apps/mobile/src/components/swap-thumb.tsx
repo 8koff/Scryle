@@ -3,7 +3,7 @@ import { Image } from "expo-image";
 import { router } from "expo-router";
 import { memo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { pictureSource } from "@/lib/use-renders";
+import { thumbSource } from "@/lib/use-renders";
 import { colors, fonts, radius, space } from "@/theme";
 
 type Props = { render: RenderCard; width: number };
@@ -20,9 +20,9 @@ export const SwapThumb = memo(function SwapThumb({ render, width }: Props) {
       style={({ pressed }) => [{ width }, pressed && styles.pressed]}
     >
       <View style={[styles.frame, { width, height: width * 1.25 }]}>
-        {/* Decoded straight to thumbnail size: full renders are large. */}
+        {/* A small preview from the server; decoded straight to tile size either way. */}
         <Image
-          source={pictureSource(render.afterUrl, render.jobId, "after")}
+          source={thumbSource(render)}
           style={styles.image}
           contentFit="cover"
           transition={150}

@@ -1,5 +1,5 @@
 import type { RenderCard } from "@retrofit/core";
-import { findRender, reloadRenders, resetRenders } from "./use-renders";
+import { findRender, reloadRenders, resetRenders, thumbSource } from "./use-renders";
 
 const mockGetApi = jest.fn();
 jest.mock("./api", () => ({ getApi: (...args: unknown[]) => mockGetApi(...args) }));
@@ -15,6 +15,17 @@ const card = (jobId: string): RenderCard => ({
   createdAt: "2026-09-28T00:00:00Z",
   beforeUrl: "https://example.test/before.jpg",
   afterUrl: "https://example.test/after.jpg",
+  thumbUrl: "https://example.test/thumb.jpg",
+});
+
+describe("thumbSource", () => {
+  test("uses the small preview, cached under its own key", () => {
+    expect(thumbSource(card("job-1"))).toEqual({ uri: "https://example.test/thumb.jpg", cacheKey: "thumb-job-1" });
+  });
+
+  test("falls back to the full picture when there is no preview yet", () => {
+    expect(thumbSource({ ...card("job-1"), thumbUrl: "" })).toEqual({ uri: "https://example.test/after.jpg", cacheKey: "after-job-1" });
+  });
 });
 
 describe("reloadRenders", () => {

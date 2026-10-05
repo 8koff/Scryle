@@ -49,6 +49,8 @@ export type RenderCard = {
   createdAt: string;
   beforeUrl: string;
   afterUrl: string;
+  /** A small preview of the after picture for lists. "" when there is none yet: use afterUrl. */
+  thumbUrl: string;
 };
 
 /** What the studio needs to open a saved photo again, with a fresh signature. */

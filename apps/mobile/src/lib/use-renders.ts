@@ -74,7 +74,11 @@ const subscribe = (listener: Listener) => {
  * Pictures are cached by swap, not by their link: the server signs a new link on every load,
  * and the picture behind it never changes.
  */
-export const pictureSource = (url: string, jobId: string, side: "before" | "after") => ({ uri: url, cacheKey: `${side}-${jobId}` });
+export const pictureSource = (url: string, jobId: string, side: "before" | "after" | "thumb") => ({ uri: url, cacheKey: `${side}-${jobId}` });
+
+/** The small preview for lists; the full picture for swaps saved before previews existed. */
+export const thumbSource = (render: RenderCard) =>
+  render.thumbUrl ? pictureSource(render.thumbUrl, render.jobId, "thumb") : pictureSource(render.afterUrl, render.jobId, "after");
 
 /** Loads on first use (or when old). `reload` is for pull-to-refresh. */
 export function useRenders() {
