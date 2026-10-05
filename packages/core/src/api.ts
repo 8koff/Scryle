@@ -9,7 +9,7 @@ import type { SceneAnalysis } from "./scene/schema";
 export type ApiResponse<T> = { success: true; data: T } | { success: false; error: string; code?: ApiErrorCode };
 
 /** Lets the app react to an error: show sign-in, show the credit packs, or confirm with Apple. */
-export type ApiErrorCode = "sign_in" | "no_credits" | "apple_confirm";
+export type ApiErrorCode = "sign_in" | "no_credits" | "apple_confirm" | "render_pending" | "render_conflict" | "render_unavailable" | "render_rejected";
 
 /** One swap the person picked: a store product, or a text-only change (paint, tint, wall colour). */
 export type SelectionInput = { partId: string; productId: string } | { partId: string; text: string };
@@ -24,7 +24,12 @@ export type ScanResult = {
   token: string;
 };
 
-export type RenderStart = { jobId: string; jobToken: string; costUsd: number };
+export type RenderStart = { jobId: string; jobToken: string; costUsd: number; requestId?: string };
+
+/** Recover a start request without submitting another provider job. */
+export type RenderRequestStatus =
+  | { requestId: string; state: "missing" | "pending" }
+  | { requestId: string; state: "finished"; result: ApiResponse<RenderStart> };
 
 export type RenderStatus = { status: "queued" | "in_progress" | "completed" | "failed" | "nsfw" | "canceled" | string; imageUrl?: string };
 

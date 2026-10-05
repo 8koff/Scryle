@@ -10,9 +10,7 @@ import { CompareSlider } from "@/components/compare-slider";
 import { OptionCard, OptionCardSkeleton } from "@/components/option-card";
 import { getBuild, type Build } from "@/lib/builds";
 import { API_URL } from "@/lib/config";
-import { OFFLINE } from "@/lib/api";
-import { forgetPending, reloadSoon, rememberPending, startRender, waitForRender } from "@/lib/render";
-import { reloadRenders } from "@/lib/use-renders";
+import { startRender, trackedRenders, waitForRender } from "@/lib/render";
 import { preselectChoices, type Chosen } from "@/lib/preselect";
 import { makeShareLink, SHARE_TEXT, sharePicture, type ShareJob } from "@/lib/share";
 import { cachedSearch, FITS, loadLiveProducts, searchStore, type Fit, type LiveProduct, type SearchResult } from "@/lib/store-search";
@@ -23,6 +21,7 @@ type RenderState =
   | { kind: "idle" }
   | { kind: "rendering"; labels: string[] }
   | { kind: "done"; imageUrl: string; picks: Chosen[]; job: ShareJob }
+  | { kind: "pending"; message: string }
   | { kind: "failed"; message: string };
 
 const FIT_LABELS: Record<Fit, string> = { women: "Women", men: "Men", any: "Any" };
@@ -85,6 +84,7 @@ function Studio({ build }: { build: Build }) {
   };
 
   const choose = (partId: string, c: Chosen) => {
+    if (render.kind === "rendering" || render.kind === "pending") return;
     if (!chosen[partId] && picks.length >= MAX_SWAPS_PER_PICTURE) {
       Alert.alert("Too many swaps", `You can swap up to ${MAX_SWAPS_PER_PICTURE} parts at once. Take one out first.`);
       return;
@@ -94,52 +94,48 @@ function Studio({ build }: { build: Build }) {
     if (render.kind === "done" || render.kind === "failed") setRender({ kind: "idle" });
   };
   const clear = (partId: string) => {
+    if (render.kind === "rendering" || render.kind === "pending") return;
     setChosen((prev) => Object.fromEntries(Object.entries(prev).filter(([k]) => k !== partId)));
     if (render.kind === "done" || render.kind === "failed") setRender({ kind: "idle" });
   };
 
   /** Only touches the screen while it is open. Leaving doesn't stop the swap or its saving. */
   const show = (next: RenderState) => {
-    if (isMounted.current) setRender(next);
+    const current = account.getSnapshot();
+    if (isMounted.current && me.status === "signed-in" && current.status === "signed-in" && current.userId === me.userId) setRender(next);
   };
 
   const runRender = async () => {
     // A ref, not state: two taps in the same frame must not start two paid swaps.
     if (!picks.length || isRendering.current || me.status !== "signed-in") return;
-    if (me.credits === 0) return router.push("/buy");
     isRendering.current = true;
     const used = picks;
     setRender({ kind: "rendering", labels: used.map((p) => p.label) });
     try {
-      const started = await startRender(build, used.map((p) => p.input));
+      // Recovery must work even when the first attempt used the person's last credit.
+      const started = await startRender(build, used.map((p) => p.input), used.map((p) => p.label).join(", "), render.kind === "done");
       void account.refreshCredits();
       if (started.status === "error") {
         show({ kind: "idle" });
         if (started.code === "no_credits") return router.push("/buy");
         if (started.code === "sign_in") return Alert.alert("Please sign in again", "Your sign-in ran out. Sign out and in again from Account.");
-        if (started.message === OFFLINE) {
-          void reloadRenders();
-          return Alert.alert(
-            "Connection lost",
-            "We couldn't confirm the swap started. Check My swaps in a minute before trying again, so you don't pay twice.",
-          );
+        if (["render_pending", "render_unavailable", "render_conflict"].includes(started.code ?? "")) {
+          show({ kind: "pending", message: started.message });
+          return;
         }
         return Alert.alert("Couldn't start the swap", started.message);
       }
       const { jobId, jobToken } = started.data;
-      await rememberPending(jobId, jobToken);
       // Keeps asking even after the screen closes (bounded), so the swap is saved without waiting for a restart.
       const end = await waitForRender(jobId, jobToken, new AbortController().signal);
+      await trackedRenders.finishJob(jobId, end);
       if (end.status === "done") {
-        await forgetPending(jobId);
-        reloadSoon();
         show({ kind: "done", imageUrl: end.imageUrl, picks: used, job: { jobId, jobToken } });
       } else if (end.status === "failed") {
-        await forgetPending(jobId);
         void account.refreshCredits(); // the swap came back
         show({ kind: "failed", message: end.message });
       } else {
-        show({ kind: "failed", message: "This is taking longer than usual. It will show up in My swaps when it's ready." });
+        show({ kind: "pending", message: "This is taking longer than usual. Check its status in My swaps, or check again here." });
       }
     } finally {
       isRendering.current = false;
@@ -147,15 +143,19 @@ function Studio({ build }: { build: Build }) {
   };
 
   const credits = me.status === "signed-in" ? me.credits : null;
-  const costLine = credits === null ? " " : credits === 0 ? "You're out of swaps." : `Uses 1 of your ${credits} ${credits === 1 ? "swap" : "swaps"}.`;
+  const costLine = render.kind === "pending" ? "Recovers your existing request without starting another swap." : credits === null ? " " : credits === 0 ? "You're out of swaps." : `Uses 1 of your ${credits} ${credits === 1 ? "swap" : "swaps"}.`;
   const buttonLabel =
     render.kind === "rendering"
       ? "Swapping…"
-      : picks.length > 1
-        ? `See all ${picks.length} on my photo`
-        : picks.length
-          ? "See it on my photo"
-          : "Pick something to swap";
+      : render.kind === "pending"
+        ? "Check this swap"
+        : render.kind === "done"
+          ? "Make another swap"
+          : picks.length > 1
+            ? `See all ${picks.length} on my photo`
+            : picks.length
+              ? "See it on my photo"
+              : "Pick something to swap";
   const aspect = build.width / build.height;
 
   return (
@@ -187,8 +187,12 @@ function Studio({ build }: { build: Build }) {
         </View>
 
         {render.kind === "done" ? <DonePanel build={build} job={render.job} picks={render.picks} /> : null}
-        {render.kind === "failed" ? <Text style={[styles.padded, styles.notice]}>{render.message}</Text> : null}
+        {render.kind === "failed" || render.kind === "pending" ? <Text style={[styles.padded, styles.notice]}>{render.message}</Text> : null}
+        {render.kind === "pending" ? (
+          <View style={styles.padded}><Button label="Open My swaps" variant="quiet" onPress={() => router.navigate("/swaps")} /></View>
+        ) : null}
 
+        {render.kind !== "pending" && render.kind !== "rendering" ? <>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
           {parts.map((part) => {
             const isOn = part.id === activeId;
@@ -267,6 +271,7 @@ function Studio({ build }: { build: Build }) {
         ) : (
           <Text style={[styles.padded, styles.body]}>We couldn&apos;t find parts to change in this photo. Try another photo.</Text>
         )}
+        </> : null}
       </ScrollView>
 
       <SafeAreaView edges={["bottom"]} style={styles.footer}>

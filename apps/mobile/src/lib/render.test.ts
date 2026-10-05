@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { checkRender, forgetPending, MAX_POLLS, rememberPending, resumePendingRenders, waitForRender } from "./render";
+import { checkRender, forgetPending, MAX_POLLS, rememberPending, resumePendingRenders, startRender, waitForRender } from "./render";
+import { postJson } from "./api";
 import { reloadRenders } from "./use-renders";
 
 jest.mock("@react-native-async-storage/async-storage", () =>
@@ -13,9 +14,23 @@ jest.mock("./api", () => ({
 }));
 jest.mock("./use-renders", () => ({ reloadRenders: jest.fn() }));
 jest.mock("./config", () => ({ API_URL: "https://example.test" }));
+jest.mock("./use-account", () => ({ account: { getSnapshot: () => ({ status: "signed-in", userId: "test-user" }), refreshCredits: jest.fn() } }));
+jest.mock("expo-crypto", () => ({ randomUUID: () => "62cde81a-c140-491a-8c36-48d3c31e0a68", digestStringAsync: async () => "test-fingerprint", CryptoDigestAlgorithm: { SHA256: "SHA256" } }));
 
 const answer = (data: unknown) => Promise.resolve(new Response(JSON.stringify({ success: true, data })));
 const noWait = () => Promise.resolve();
+
+test("does not start a paid swap if its recovery record cannot be saved", async () => {
+  await AsyncStorage.clear();
+  (postJson as jest.Mock).mockClear().mockResolvedValueOnce({ status: "ready", data: { jobId: "test-job", jobToken: "test-proof", costUsd: 0.03 } });
+  (AsyncStorage.setItem as jest.Mock).mockRejectedValueOnce(new Error("disk full"));
+  const result = await startRender({
+    id: "test-build", pack: "room", localUri: "file:///test-photo.jpg", photoUrl: "https://example.test/photo.jpg",
+    width: 3, height: 4, scene: { subject: "room", parts: [] }, token: "test-photo-proof",
+  }, [{ partId: "wall-colour", productId: "room-wall-colour-sage-green-matte-paint" }]);
+  expect(result.status).toBe("error");
+  expect(postJson).not.toHaveBeenCalled();
+});
 
 describe("checkRender", () => {
   test("asks the right address and reads a finished render", async () => {
@@ -102,11 +117,14 @@ describe("pending renders", () => {
   });
 
   test("an unknown job (404) is dropped instead of asked about forever", async () => {
+    jest.useFakeTimers();
     await rememberPending("job-gone", "t");
     const fetcher = jest.fn(() => Promise.resolve(new Response(JSON.stringify({ success: false, error: "Unknown render." }), { status: 404 })));
 
     await resumePendingRenders(fetcher as unknown as typeof fetch);
 
     expect(await savedIds()).toEqual([]);
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
   });
 });
