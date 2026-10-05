@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import Image, { type StaticImageData } from "next/image";
+import type { StaticImageData } from "next/image";
 import Link from "next/link";
 import { BRAND } from "@retrofit/core";
 import { Logo } from "@/components/brand/logo";
+import { CompareSlider } from "@/components/ui/compare-slider";
 import { JoinForm } from "@/components/waitlist/join-form";
 import { WaitlistDemo } from "@/components/waitlist/waitlist-demo";
-import { DEMO, HERO_DEMO } from "@/lib/demo";
+import { DEMO } from "@/lib/demo";
 
 const PITCH = `${BRAND.name} sees the sofa, the wheels, the jacket, and shows you something better on your own photo. Then it tells you where to buy it.`;
 
@@ -16,10 +17,46 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image" },
 };
 
-const CATEGORIES: { label: string; examples: string; image: StaticImageData; position: string }[] = [
-  { label: "Room", examples: "Sofas, walls, rugs, lamps", image: HERO_DEMO.room.after, position: "60% 60%" },
-  { label: "Car", examples: "Wheels, paint, tint, stance", image: DEMO.wheel.after, position: "50% 45%" },
-  { label: "Clothing", examples: "Jackets, trousers, shoes", image: DEMO.person.outfit, position: "50% 30%" },
+type Category = {
+  label: string;
+  examples: string;
+  before: StaticImageData;
+  after: StaticImageData;
+  beforeAlt: string;
+  afterAlt: string;
+  /** The part of the photo to keep in view when it is cropped to the card. */
+  focus: { x: number; y: number };
+};
+
+/** One before/after per category, so each card can be dragged like the big demo. */
+const CATEGORIES: Category[] = [
+  {
+    label: "Room",
+    examples: "Sofas, walls, rugs, lamps",
+    before: DEMO.room.before,
+    after: DEMO.room.after,
+    beforeAlt: "A living room with a beige fabric sofa",
+    afterAlt: "The same living room with an emerald velvet sofa",
+    focus: { x: 0.5, y: 0.6 },
+  },
+  {
+    label: "Car",
+    examples: "Wheels, paint, tint, stance",
+    before: DEMO.wheel.before,
+    after: DEMO.wheel.after,
+    beforeAlt: "A white car's stock silver wheel",
+    afterAlt: "The same car with a gloss black 10-spoke wheel",
+    focus: { x: 0.47, y: 0.46 },
+  },
+  {
+    label: "Clothing",
+    examples: "Shirts, jeans, sneakers",
+    before: DEMO.person.before,
+    after: DEMO.person.outfit,
+    beforeAlt: "A person in a grey hoodie, jeans and white sneakers",
+    afterAlt: "The same person in an open black and cream crochet shirt over a white tank top, baggy light jeans and black and white sneakers",
+    focus: { x: 0.5, y: 0.4 },
+  },
 ];
 
 const CONTAINER = "mx-auto w-full max-w-6xl px-4 sm:px-6";
@@ -34,9 +71,17 @@ function Categories() {
       {CATEGORIES.map((c, i) => (
         <li key={c.label} className="border-line py-6 sm:border-t sm:px-5 sm:[&+&]:border-l">
           <p className="text-[14px] font-semibold text-accent-ink">{`${String(i + 1).padStart(2, "0")} / ${c.label}`}</p>
-          <div className="photo-edge relative mt-3 aspect-[3/2] overflow-hidden rounded-[10px] bg-surface-2">
-            <Image src={c.image} alt="" fill sizes="(min-width: 640px) 360px, 100vw" className="object-cover" style={{ objectPosition: c.position }} />
-          </div>
+          <CompareSlider
+            before={c.before}
+            after={c.after}
+            beforeAlt={c.beforeAlt}
+            afterAlt={c.afterAlt}
+            aspect={4 / 5}
+            focus={c.focus}
+            intro
+            sizes="(min-width: 640px) 360px, 100vw"
+            className="mt-3 rounded-[10px]"
+          />
           <p className="mt-3 text-[18px] font-semibold">{c.examples}</p>
         </li>
       ))}
@@ -63,7 +108,7 @@ export default async function WaitlistPage({ searchParams }: PageProps<"/waitlis
       <main className="flex flex-1 flex-col">
         <section
           aria-labelledby="waitlist-title"
-          className={`${CONTAINER} grid items-center gap-x-16 gap-y-12 py-12 sm:py-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)] lg:py-20`}
+          className={`${CONTAINER} grid grid-cols-[minmax(0,1fr)] items-center gap-x-16 gap-y-12 py-12 sm:py-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)] lg:py-20`}
         >
           <div className="max-w-[560px]">
             <h1 id="waitlist-title" className="display text-[3rem] font-semibold sm:text-[4.2rem]">
@@ -95,8 +140,8 @@ export default async function WaitlistPage({ searchParams }: PageProps<"/waitlis
             <Link href="/privacy" className="transition-colors hover:text-fg">
               Privacy
             </Link>
-            <Link href="/" className="transition-colors hover:text-fg">
-              scryle.app
+            <Link href="/terms" className="transition-colors hover:text-fg">
+              Terms
             </Link>
           </nav>
         </div>
