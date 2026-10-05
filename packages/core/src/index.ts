@@ -35,6 +35,7 @@ export type {
   InviteInfo,
   RenderCard,
   RenderStart,
+  RenderRequestStatus,
   RenderStatus,
   Reopened,
   ScanResult,

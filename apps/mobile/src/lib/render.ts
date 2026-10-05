@@ -1,9 +1,12 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import type { ApiResponse, RenderStart, RenderStatus, SelectionInput } from "@retrofit/core";
-import { postJson, withTimeout, type Loaded } from "./api";
+import * as Crypto from "expo-crypto";
+import type { ApiResponse, RenderRequestStatus, RenderStart, RenderStatus, SelectionInput } from "@retrofit/core";
+import { getApi, postJson, withTimeout, type Loaded } from "./api";
 import { claimOf, type Build } from "./builds";
 import { API_URL } from "./config";
 import { reloadRenders } from "./use-renders";
+import { account } from "./use-account";
+import { createRenderRequests } from "./render-requests";
 
 /** Same timing as the web studio. */
 export const POLL_MS = 2500;
@@ -19,8 +22,8 @@ export type RenderEnd =
   /** Still running when we stopped asking. The server keeps it, and My swaps shows it later. */
   | { status: "timeout" };
 
-export async function startRender(build: Build, selections: SelectionInput[]): Promise<Exclude<Loaded<RenderStart>, { status: "loading" }>> {
-  return postJson<RenderStart>("/api/render", { ...claimOf(build), selections });
+export async function startRender(build: Build, selections: SelectionInput[], label = "Swap", fresh = false): Promise<Exclude<Loaded<RenderStart>, { status: "loading" }>> {
+  return trackedRenders.start({ ...claimOf(build), selections }, label, fresh);
 }
 
 /** One status check. Null while it is still running (or the network blinked). */
@@ -118,3 +121,14 @@ export async function resumePendingRenders(fetcher: typeof fetch = fetch) {
 
 /** Clears this phone's render list on sign-out. */
 export const clearPending = () => AsyncStorage.removeItem(PENDING_KEY).catch(() => {});
+
+export const trackedRenders = createRenderRequests({
+  storage: AsyncStorage,
+  owner: () => { const me = account.getSnapshot(); return me.status === "signed-in" ? me.userId : null; },
+  newId: Crypto.randomUUID,
+  fingerprint: (input) => Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, JSON.stringify(input)),
+  getStatus: (id) => getApi<RenderRequestStatus>(`/api/render/requests/${encodeURIComponent(id)}`),
+  post: (input) => postJson<RenderStart>("/api/render", input),
+  checkJob: (start) => checkRender(start.jobId, start.jobToken),
+  onSettled: () => { reloadSoon(); void account.refreshCredits(); },
+});

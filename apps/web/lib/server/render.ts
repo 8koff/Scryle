@@ -6,6 +6,7 @@ import { cleanDescription, withoutSteering } from "@/lib/catalog/describe";
 import type { CreditStore } from "./credits";
 import { buildEditRequest, type EditModelId } from "./higgsfield/models";
 import type { NewRender } from "./renders";
+import { renderPending, runRenderRequest, type RenderRequestStore } from "./render-requests";
 import { lookupProducts, type FindLive } from "./shop/lookup";
 import { signJob, verifyPhoto, type PhotoClaim } from "./signing";
 import type { SpendGuard } from "./spend";
@@ -27,6 +28,8 @@ export type RenderDeps = {
   recordRender?: (render: NewRender) => Promise<void>;
   /** Products found by store search, by id (see shop/products.ts). */
   findLive?: FindLive;
+  /** Required for clients that send a durable request ID. Never fall back to memory. */
+  requests?: RenderRequestStore;
 };
 
 
@@ -40,6 +43,7 @@ export const ClaimSchema = z.object({
 });
 
 const RequestSchema = z.object({
+  requestId: z.uuid().optional(),
   claim: ClaimSchema,
   token: z.string().min(1).max(200),
   selections: z
@@ -77,7 +81,16 @@ export function promptTitle(title: string): string {
 export async function handleRender(input: unknown, deps: RenderDeps): Promise<Result> {
   const parsed = RequestSchema.safeParse(input);
   if (!parsed.success) return fail(400, "That request didn't look right.");
-  const { claim: rawClaim, token, selections } = parsed.data;
+  if (parsed.data.requestId) {
+    if (!deps.userId) return fail(401, "Please sign in.", "sign_in");
+    if (!deps.requests) return fail(503, "Swap recovery isn't ready yet. Please try again later.", "render_unavailable");
+    return runRenderRequest(deps.userId, parsed.data.requestId, parsed.data, deps.requests, () => executeRender(parsed.data, deps));
+  }
+  return executeRender(parsed.data, deps);
+}
+
+async function executeRender(input: z.infer<typeof RequestSchema>, deps: RenderDeps): Promise<Result> {
+  const { claim: rawClaim, token, selections, requestId } = input;
   if (!isPackId(rawClaim.pack)) return fail(400, "Unknown category.");
   const claim: PhotoClaim = { ...rawClaim, pack: rawClaim.pack };
   if (!verifyPhoto(claim, token, deps.secret)) return fail(403, "This photo has expired. Please take a new one.");
@@ -117,6 +130,7 @@ export async function handleRender(input: unknown, deps: RenderDeps): Promise<Re
   if (entry === null) return fail(402, "You're out of pictures. Pick a pack to keep going.", "no_credits");
 
   let reserved = 0;
+  let submitting = false;
   try {
     const paths = resolved.map((r) => r.imagePath).filter((p): p is string => Boolean(p));
     const imageUrls = await Promise.all(paths.map((p) => deps.productImageUrl(p)));
@@ -136,7 +150,9 @@ export async function handleRender(input: unknown, deps: RenderDeps): Promise<Re
     }
     reserved = costUsd;
 
+    submitting = true;
     const jobId = await deps.submit(endpoint, body);
+    submitting = false;
     // The job is already paid for, so never fail here. Retry once; without the link a failed
     // render can't be refunded automatically.
     await deps.credits
@@ -157,8 +173,14 @@ export async function handleRender(input: unknown, deps: RenderDeps): Promise<Re
     await deps.recordRender?.(saved)
       .catch(() => deps.recordRender?.(saved))
       .catch((error) => console.error("[render] record failed", jobId, error));
-    return { status: 200, body: { success: true, data: { jobId, jobToken: signJob(jobId, deps.secret), costUsd } } };
+    return { status: 200, body: { success: true, data: { jobId, jobToken: signJob(jobId, deps.secret), costUsd, ...(requestId ? { requestId } : {}) } } };
   } catch (error) {
+    if (requestId && submitting) {
+      // A rejected promise does not prove the provider rejected the paid job. Keep its claim,
+      // credit and reserved budget until the outcome is known; a retry must not submit again.
+      console.error("[render] provider acceptance is uncertain");
+      return renderPending();
+    }
     if (reserved) await deps.spend.release(reserved).catch((e) => console.error("[render] spend release failed", e));
     await deps.credits.refundEntry(entry).catch((e) => console.error("[render] refund failed", entry, e));
     console.error("[render] failed to start", error);

@@ -306,3 +306,53 @@ them joined (rebuild it by concatenating the migration files after a header line
   wrappers `absolute inset-0`. With `aspect-ratio` + `max-height`, add `w-full` or the browser narrows the box.
 - Windows scripts: set `process.exitCode`, never `process.exit()`.
 - Two hero room pictures are **mirrored** on purpose. The owner's Chrome has Grammarly (hydration warning silenced on `<body>`).
+
+## Product assessment (2026-10-04)
+
+- Added `PRODUCT-REVIEW.md`: five ranked improvements for the iOS product, with current-code evidence, rough
+  effort estimates, first changes, and success checks. Read the newer iOS handoff for the current product direction;
+  the older web roadmap above is historical.
+- Recommended order: safe recovery after interrupted swaps; examples before sign-in; mobile store-search
+  refinement; persistent unfinished edits; invite capture and claiming in iOS. Protected implementation work is
+  identified in the report; this session implemented no product changes.
+- Verified `npx --no-install turbo run typecheck test`: 6/6 tasks passed; web 389 tests, mobile 64, core 46 (core
+  tests and typecheck from cache). Web ESLint passed with no output. Device flows and paid provider quality remain
+  unverified; no production changes or paid API calls were made.
+- Existing `apps/mobile/tsconfig.json` edits and the untracked `ARCHITECTURE.md` were left in place.
+
+## Interrupted-swap recovery started (2026-10-04)
+
+- Working branch: `codex/recover-interrupted-swaps`. Local checkpoint `2cbd4b7` adds
+  `apps/web/lib/server/render-retry.test.ts`. It reproduces a lost-response retry submitting two provider jobs
+  and spending two credits. Providers are mocked; no paid run occurred.
+- Concrete design, acceptance checks, and RED evidence: `docs/testing/interrupted-swaps.md`.
+- Implementation is not complete. The new regression deliberately remains failing; all 499 pre-existing tests
+  passed (mobile/core from cache). Web typecheck passed separately; mobile/core typechecks were cached; web lint passed.
+- Awaiting the owner's exact-file confirmation for `supabase/migrations/0011_render_requests.sql` and appending
+  the same SQL to `supabase/setup-all.sql`. Proposed table stores account-scoped request IDs, fingerprints,
+  outcomes, and timestamps with RLS and service-role access only. No protected files have been edited.
+- No product code changed yet. Existing uncommitted work remains in place. Nothing was pushed or deployed.
+
+## Interrupted-swap recovery implemented locally (2026-10-04)
+
+- Continues the approved work above. The owner confirmed the exact database source changes: new
+  `supabase/migrations/0011_render_requests.sql` and the identical appended SQL in `supabase/setup-all.sql`.
+  No live SQL or deployment occurred; protected credit/auth/spend/rate-limit helpers were reused unchanged.
+- Mobile persists an account-scoped request ID before starting a swap. The API claims it durably before spending,
+  fingerprints its input, and replays known outcomes. GET `/api/render/requests/[id]` recovers an authenticated
+  account's request without another paid submission. Legacy callers without IDs retain the existing behavior.
+- Foreground and My swaps recover pending requests. My swaps shows checking/running/ready/failed status;
+  the studio can check the existing swap even with zero remaining credits. It prevents changing picks during
+  an unresolved request. Completed states cannot regress when studio and foreground responses arrive out of order.
+- Unknown provider acceptance remains pending and is never automatically retried or reclaimed. Such a request
+  can retain its credit and reserved spend until owner reconciliation. This is lost-response protection, not a
+  guarantee that every interrupted provider call can be resolved automatically. Scan starts remain separate work.
+- Verification: `npx --no-install turbo run typecheck test` passed 6/6 tasks: web 410, mobile 81, core 46 tests
+  (537 total; core checks cached). Web and mobile ESLint passed. SQL mirror and `git diff --check` passed.
+  Recovery engine coverage: 98.09% lines, 82.94% branches. Detailed RED/GREEN evidence and limits:
+  `docs/testing/interrupted-swaps.md`; original RED checkpoint `2cbd4b7`.
+- Owner release order: apply migration 0011, deploy the API, then release the iOS client. The client refuses a
+  paid start if recovery support is missing. Device acceptance and a real database concurrency/RLS check remain
+  unverified (no iPhone, local Postgres or Docker used); provider tests are mocked. No dependency was added.
+- This branch remains local. GitHub CLI is unavailable; no PR, push, merge, or release was performed. Existing
+  `apps/mobile/tsconfig.json` edits and untracked `ARCHITECTURE.md` are outside this change and remain untouched.

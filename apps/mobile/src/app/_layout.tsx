@@ -14,7 +14,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Button } from "@/components/button";
 import { forgetInvite } from "@/components/invite-card";
 import { startPurchases } from "@/lib/purchases";
-import { resumePendingRenders } from "@/lib/render";
+import { resumePendingRenders, trackedRenders } from "@/lib/render";
 import { account, useSessionRefresh } from "@/lib/use-account";
 import { resetRenders } from "@/lib/use-renders";
 import { colors, fonts, space } from "@/theme";
@@ -45,6 +45,7 @@ export default function RootLayout() {
     InstrumentSans_700Bold,
   });
   const status = useAccountStatus();
+  const userId = useSyncExternalStore(account.subscribe, () => { const me = account.getSnapshot(); return me.status === "signed-in" ? me.userId : null; });
   const [isSplashTooLong, setIsSplashTooLong] = useState(false);
   useSessionRefresh();
 
@@ -68,15 +69,17 @@ export default function RootLayout() {
     }
     // Swaps that finished while the app was closed land in My swaps; unfinished Apple purchases are sent again.
     void resumePendingRenders();
+    void trackedRenders.recover();
     void startPurchases();
     // And each time the app comes back to the front (the balance may have changed on the website too).
     const sub = AppState.addEventListener("change", (next) => {
       if (next !== "active") return;
       void resumePendingRenders();
+      void trackedRenders.recover();
       void account.refreshCredits();
     });
     return () => sub.remove();
-  }, [isSignedIn]);
+  }, [isSignedIn, userId]);
 
   if (!isReady) {
     // Still deciding signed in or not: a neutral screen, never a flash of the sign-in page.
@@ -91,7 +94,7 @@ export default function RootLayout() {
     // Gesture root: the before/after sliders use react-native-gesture-handler.
     <GestureHandlerRootView style={styles.root}>
       <StatusBar style="light" />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+      <Stack key={userId ?? "signed-out"} screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
         <Stack.Protected guard={isSignedIn}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="pack/[id]" options={pageHeader} />
