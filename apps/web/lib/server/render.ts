@@ -4,6 +4,7 @@ import type { ApiErrorCode, ApiResponse, RenderStart } from "@/lib/api";
 import { fitsPart, type Product } from "@/lib/catalog/catalog";
 import { cleanDescription, withoutSteering } from "@/lib/catalog/describe";
 import type { CreditStore } from "./credits";
+import { HiggsfieldError } from "./higgsfield/client";
 import { buildEditRequest, type EditModelId } from "./higgsfield/models";
 import type { NewRender } from "./renders";
 import { renderPending, runRenderRequest, type RenderRequestStore } from "./render-requests";
@@ -75,6 +76,11 @@ export function promptTitle(title: string): string {
   const plain = withoutSteering(title.replace(/[^\p{L}\p{N} ,.'&%()\-/+]/gu, " "));
   if (plain.length <= PROMPT_TITLE_MAX) return plain;
   return plain.slice(0, PROMPT_TITLE_MAX).replace(/\s+\S*$/, "");
+}
+
+/** A 4xx answer means the provider refused the job, so nothing was paid (408 is a timeout: unknown). */
+function isClearRefusal(error: unknown): boolean {
+  return error instanceof HiggsfieldError && error.status >= 400 && error.status < 500 && error.status !== 408;
 }
 
 /** Starts one render. Every input is re-checked here: the browser is never trusted. */
@@ -175,7 +181,7 @@ async function executeRender(input: z.infer<typeof RequestSchema>, deps: RenderD
       .catch((error) => console.error("[render] record failed", jobId, error));
     return { status: 200, body: { success: true, data: { jobId, jobToken: signJob(jobId, deps.secret), costUsd, ...(requestId ? { requestId } : {}) } } };
   } catch (error) {
-    if (requestId && submitting) {
+    if (requestId && submitting && !isClearRefusal(error)) {
       // A rejected promise does not prove the provider rejected the paid job. Keep its claim,
       // credit and reserved budget until the outcome is known; a retry must not submit again.
       console.error("[render] provider acceptance is uncertain");

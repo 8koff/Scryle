@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createMemoryCreditStore } from "./credits";
+import { HiggsfieldError } from "./higgsfield/client";
 import { handleRender, type RenderDeps } from "./render";
 import { createMemoryRenderRequestStore } from "./render-requests";
 import { signPhoto, type PhotoClaim } from "./signing";
@@ -84,5 +85,28 @@ describe("retrying an interrupted render start", () => {
     expect(submit).toHaveBeenCalledTimes(1);
     expect(await credits.balance("test-user")).toBe(1);
     expect(spend.spentTodayUsd()).toBe(0.03);
+  });
+
+  it("gives the credit and budget back when the provider clearly refused the job", async () => {
+    const claim: PhotoClaim = { photoUrl: "https://example.test/room.jpg", pack: "room", width: 3, height: 4, scene: { subject: "room", parts: [] } };
+    const credits = createMemoryCreditStore({ "test-user": 2 });
+    const submit = vi.fn(async (): Promise<string> => { throw new HiggsfieldError(400, null, "bad request"); });
+    const spend = createSpendGuard({ dailyCapUsd: 1 });
+    const deps: RenderDeps = {
+      secret: SIGNING_KEY, model: "marketing-low", productImageUrl: vi.fn(), combine: vi.fn(), estimate: vi.fn(async () => 0.03),
+      submit, spend, userId: "test-user", credits, requests: createMemoryRenderRequestStore(),
+    };
+    const input = {
+      requestId: "62cde81a-c140-491a-8c36-48d3c31e0a68", claim, token: signPhoto(claim, SIGNING_KEY),
+      selections: [{ partId: "wall-colour", productId: "room-wall-colour-sage-green-matte-paint" }],
+    };
+    const first = await handleRender(input, deps);
+    expect(first.status).toBe(502);
+    expect(first.body).toMatchObject({ success: false, code: "render_rejected" });
+    // A retry with the same ID gets the saved refusal and never submits again.
+    expect(await handleRender(input, deps)).toEqual(first);
+    expect(submit).toHaveBeenCalledTimes(1);
+    expect(await credits.balance("test-user")).toBe(2);
+    expect(spend.spentTodayUsd()).toBe(0);
   });
 });
