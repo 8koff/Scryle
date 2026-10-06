@@ -2,6 +2,7 @@
 
 import { CompareSlider, REVEAL } from "@/components/ui/compare-slider";
 import { HERO_DEMO } from "@/lib/demo";
+import { ShopRow } from "./shop-parts";
 
 const DEMO = HERO_DEMO.room;
 
@@ -54,23 +55,42 @@ function Overlay() {
   );
 }
 
-/** The room makeover as a before/after you can drag, in a dark tablet frame tilted a little. */
+/**
+ * The room makeover as a before/after you can drag, in a dark tablet frame tilted a little,
+ * with the store card for the new sofa below it.
+ */
 export function WaitlistDemo() {
   return (
-    <div className="rotate-[2deg] rounded-[34px] bg-[#161513] p-[10px] shadow-[0_50px_90px_-30px_rgb(22_21_19/0.55)]">
-      <CompareSlider
-        before={DEMO.before}
-        after={DEMO.after}
-        beforeAlt="A plain living room with white walls, a grey sofa and a light oak floor"
-        afterAlt="The same room upgraded in place: a cream bouclé sofa, framed art, brass lights and a cream wool rug"
-        aspect={4 / 5}
-        focus={{ x: 0.74, y: 0.5 }}
-        intro="reveal"
-        priority
-        sizes="(min-width: 1024px) 460px, 100vw"
-        overlay={<Overlay />}
-        className="rounded-[22px]"
-      />
+    <div className="relative">
+      <div className="rotate-[2deg] rounded-[34px] bg-[#161513] p-[10px] shadow-[0_50px_90px_-30px_rgb(22_21_19/0.55)]">
+        <Slider />
+      </div>
+      {/* The swap is a real product you can buy: the store card the app shows, popping in after the wipe.
+          It hangs from the frame's edge, below the photo's Before / After (AI edit) labels. */}
+      <div className={`absolute -bottom-14 left-3 right-3 sm:-left-8 sm:right-auto sm:w-[330px] ${POP}`} style={at(LANDED + 500)}>
+        <ShopRow products={[SOFA]} className="shadow-[0_18px_40px_-12px_rgb(22_21_19/0.45)]" />
+      </div>
     </div>
+  );
+}
+
+/** The new sofa, cut out of the "after" photo for the store card. */
+const SOFA = { image: DEMO.after, title: "Cream bouclé sofa", crop: "84% 72%" };
+
+function Slider() {
+  return (
+    <CompareSlider
+      before={DEMO.before}
+      after={DEMO.after}
+      beforeAlt="A plain living room with white walls, a grey sofa and a light oak floor"
+      afterAlt="The same room upgraded in place: a cream bouclé sofa, framed art, brass lights and a cream wool rug"
+      aspect={4 / 5}
+      focus={{ x: 0.74, y: 0.5 }}
+      intro="reveal"
+      priority
+      sizes="(min-width: 1024px) 460px, 100vw"
+      overlay={<Overlay />}
+      className="rounded-[22px]"
+    />
   );
 }

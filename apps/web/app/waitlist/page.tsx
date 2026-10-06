@@ -5,15 +5,19 @@ import { BRAND } from "@retrofit/core";
 import { Logo } from "@/components/brand/logo";
 import { CompareSlider } from "@/components/ui/compare-slider";
 import { JoinForm } from "@/components/waitlist/join-form";
+import { ShopRow, Steps, type ExampleProduct } from "@/components/waitlist/shop-parts";
 import { WaitlistDemo } from "@/components/waitlist/waitlist-demo";
 import { DEMO } from "@/lib/demo";
+import personOutfit from "@/public/demo/person-outfit.jpg";
+import productCargo from "@/public/demo/product-cargo.jpg";
+import productSneakers from "@/public/demo/product-sneakers.jpg";
 
-const PITCH = `${BRAND.name} sees the sofa, the wheels, the jacket, and shows you something better on your own photo. Then it tells you where to buy it.`;
+const PITCH = `${BRAND.name} sees the sofa, the wheels, the jacket. Swap in a real product on your own photo, then buy it straight from the store.`;
 
 export const metadata: Metadata = {
   title: `Join the waitlist · ${BRAND.name}`,
   description: PITCH,
-  openGraph: { title: `${BRAND.name}: point at anything, tap it, swap it.`, description: PITCH },
+  openGraph: { title: `${BRAND.name}: point at anything, swap it, shop it.`, description: PITCH },
   twitter: { card: "summary_large_image" },
 };
 
@@ -26,6 +30,10 @@ type Category = {
   afterAlt: string;
   /** The part of the photo to keep in view when it is cropped to the card. */
   focus: { x: number; y: number };
+  /** The products in the "after" photo, as the app would list them. */
+  products: readonly ExampleProduct[];
+  /** A short name when there are several products. */
+  shopTitle?: string;
 };
 
 /** One before/after per category, so each card can be dragged like the big demo. */
@@ -38,6 +46,7 @@ const CATEGORIES: Category[] = [
     beforeAlt: "A living room with a beige fabric sofa",
     afterAlt: "The same living room with an emerald velvet sofa",
     focus: { x: 0.5, y: 0.6 },
+    products: [DEMO.room.product],
   },
   {
     label: "Car",
@@ -47,15 +56,23 @@ const CATEGORIES: Category[] = [
     beforeAlt: "A white car's stock silver wheel",
     afterAlt: "The same car with a gloss black 10-spoke wheel",
     focus: { x: 0.47, y: 0.46 },
+    products: [DEMO.wheel.product],
   },
   {
     label: "Clothing",
-    examples: "Shirts, jeans, sneakers",
+    examples: "Jackets, trousers, sneakers",
     before: DEMO.person.before,
-    after: DEMO.person.outfit,
+    after: personOutfit,
     beforeAlt: "A person in a grey hoodie, jeans and white sneakers",
-    afterAlt: "The same person in an open black and cream crochet shirt over a white tank top, baggy light jeans and black and white sneakers",
+    afterAlt: "The same person in a black leather bomber jacket, olive cargo trousers and white and green sneakers",
     focus: { x: 0.5, y: 0.4 },
+    // The three pieces in this outfit render, each with its own product photo.
+    products: [
+      DEMO.person.product,
+      { image: productCargo, title: "Olive cargo trousers" },
+      { image: productSneakers, title: "White and green sneakers" },
+    ],
+    shopTitle: "Bomber, cargos, sneakers",
   },
 ];
 
@@ -82,6 +99,7 @@ function Categories() {
             sizes="(min-width: 640px) 360px, 100vw"
             className="mt-3 rounded-[10px]"
           />
+          <ShopRow products={c.products} title={c.shopTitle} className="mt-3" />
           <p className="mt-3 text-[18px] font-semibold">{c.examples}</p>
         </li>
       ))}
@@ -112,7 +130,7 @@ export default async function WaitlistPage({ searchParams }: PageProps<"/waitlis
         >
           <div className="max-w-[560px]">
             <h1 id="waitlist-title" className="display text-[3rem] font-semibold sm:text-[4.2rem]">
-              Point at anything. Tap it. <span className="text-accent-ink">Swap it.</span>
+              Point at anything. Swap it. <span className="text-accent-ink">Shop it.</span>
             </h1>
             <p className="mt-6 max-w-[440px] text-[18px] leading-relaxed text-muted">{PITCH}</p>
             <div className="mt-8 max-w-[440px]">
@@ -122,9 +140,13 @@ export default async function WaitlistPage({ searchParams }: PageProps<"/waitlis
           </div>
           <div className="mx-auto w-full max-w-[440px]">
             <WaitlistDemo />
-            <p className="mt-4 text-center text-[12px] text-muted">Example. The demo photos are AI-generated.</p>
+            <p className="mt-20 text-center text-[12px] text-muted">Example. The demo photos are AI-generated.</p>
           </div>
         </section>
+
+        <div className={`${CONTAINER} pb-14 sm:pb-20`}>
+          <Steps />
+        </div>
 
         <div className={`${CONTAINER} pb-12 sm:pb-16`}>
           <Categories />

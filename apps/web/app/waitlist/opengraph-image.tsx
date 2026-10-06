@@ -6,7 +6,7 @@ import { SeamMark } from "@/lib/brand-mark";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const alt = `${BRAND.name}: point at anything, tap it, swap it. Join the waitlist.`;
+export const alt = `${BRAND.name}: point at anything, swap it, shop it. Join the waitlist.`;
 
 /** The waitlist page's colours (`.theme-paper` in globals.css). */
 const PAPER = "#f3f0ea";
@@ -43,8 +43,8 @@ export default async function OpenGraphImage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             <div style={{ display: "flex", flexDirection: "column", fontSize: 76, fontWeight: 600, lineHeight: 1, letterSpacing: -2.5 }}>
               <span>Point at anything.</span>
-              <span>Tap it.</span>
-              <span style={{ color: DENIM }}>Swap it.</span>
+              <span>Swap it.</span>
+              <span style={{ color: DENIM }}>Shop it.</span>
             </div>
             <div style={{ fontSize: 28, fontWeight: 500, color: MUTED }}>Join the waitlist at scryle.app</div>
           </div>
@@ -60,10 +60,11 @@ export default async function OpenGraphImage() {
               </div>
               <div style={{ position: "absolute", top: 0, left: photo.width / 2 - 2, width: 4, height: photo.height, background: "#ffffff" }} />
               <div
-                style={{ position: "absolute", top: 250, right: 18, display: "flex", alignItems: "center", gap: 10, background: "#ffffff", color: INK, fontSize: 21, fontWeight: 600, padding: "8px 16px 8px 12px", borderRadius: 999 }}
+                style={{ position: "absolute", top: 250, right: 14, display: "flex", alignItems: "center", gap: 10, background: "#ffffff", color: INK, fontSize: 21, fontWeight: 600, padding: "6px 6px 6px 12px", borderRadius: 999 }}
               >
                 <div style={{ width: 16, height: 16, borderRadius: 999, background: DENIM, border: "3px solid #ffffff", boxShadow: `0 0 0 2px ${DENIM}` }} />
                 Sofa → Cream bouclé
+                <div style={{ display: "flex", background: DENIM, color: "#ffffff", fontSize: 18, padding: "5px 14px", borderRadius: 999 }}>Shop</div>
               </div>
               <div style={{ ...label, left: 16, background: "rgba(0,0,0,0.6)", color: "#ffffff" }}>Before</div>
               <div style={{ ...label, right: 16, background: "#ffffff", color: "#000000" }}>After (AI edit)</div>
