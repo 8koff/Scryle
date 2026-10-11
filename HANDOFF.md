@@ -356,3 +356,21 @@ them joined (rebuild it by concatenating the migration files after a header line
   unverified (no iPhone, local Postgres or Docker used); provider tests are mocked. No dependency was added.
 - This branch remains local. GitHub CLI is unavailable; no PR, push, merge, or release was performed. Existing
   `apps/mobile/tsconfig.json` edits and untracked `ARCHITECTURE.md` are outside this change and remain untouched.
+
+## AI-data consent and subscription Terms/Privacy (2026-10-11, branch `feat/ai-consent-legal`)
+
+Fixes blockers 1 and 2 of the iOS ship check (Apple guideline 5.1.2(i): ask before photos go to a third-party AI).
+- **App:** `AiConsentGate` (`apps/mobile/src/components/ai-consent-gate.tsx`) wraps the camera in `capture/[pack]` and
+  `snap`. First time: "Your photo and our AI" screen (Anthropic reads, Higgsfield stores and makes the swap, retention,
+  Allow / Not now). The answer comes from the server; a yes is remembered for the app session (`lib/ai-consent.ts`).
+- **Server:** `GET/POST /api/ai-consent` (`lib/server/ai-consent.ts`, table `ai_consents`, migration **0013**, not run on
+  production yet). `/api/scan` now refuses a **signed-in** scan without consent (403), before uploading or booking
+  spend; a sign-in header that doesn't check out gets 401; consent check errors fail closed (503).
+- **Signed-out website scans are unchanged** (they keep the on-page notice; Clothing has its checkbox). Follow-up if
+  the website should ask the same way.
+- **Version:** `AI_CONSENT_VERSION` in `packages/core/src/ai-consent.ts`. Raise it (and update the app screen and
+  Privacy) when a new AI company or a new use of photos is added: everyone is asked again.
+- **Terms and Privacy** rewritten for plans (Starter/Plus/Pro, monthly reset, no rollover, auto-renew, cancelling,
+  refunds via Apple/Stripe, RevenueCat) and a new Privacy section "Your photos and AI" (`/privacy#ai`). Prices and
+  swap counts aren't hard-coded: the plans screen shows them. Owner approval needed (protected files).
+- Withdrawing consent is by email or closing the account for now; an in-app switch is a possible follow-up.

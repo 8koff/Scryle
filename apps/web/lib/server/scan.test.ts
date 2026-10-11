@@ -1,6 +1,7 @@
 import sharp from "sharp";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { SceneAnalysis } from "@retrofit/core";
+import { AI_CONSENT_NEEDED, createMemoryAiConsentStore, hasAiConsent } from "./ai-consent";
 import { handleScan, MAX_PHOTO_BYTES, PERSON_REFUSED, type ScanDeps } from "./scan";
 
 const scene: SceneAnalysis = { subject: "a person", parts: [] };
@@ -128,5 +129,50 @@ describe("handleScan", () => {
 
     expect(result.status).toBe(502);
     expect(JSON.stringify(result.body)).not.toContain("secret upstream detail");
+  });
+
+  describe("AI-data consent (signed-in callers)", () => {
+    it("refuses a scan before the person allows it: nothing is uploaded, read or booked", async () => {
+      const store = createMemoryAiConsentStore();
+      const d = deps({ hasAiConsent: () => hasAiConsent(store, "u1") });
+
+      const result = await handleScan(form({ pack: "car", photo: jpeg() }), d);
+
+      expect(result).toEqual({ status: 403, body: { success: false, error: AI_CONSENT_NEEDED } });
+      expect(d.upload).not.toHaveBeenCalled();
+      expect(d.analyze).not.toHaveBeenCalled();
+      expect(d.reserve).not.toHaveBeenCalled();
+    });
+
+    it("scans once the person has allowed it", async () => {
+      const store = createMemoryAiConsentStore();
+      await store.record("u1", 1);
+      const d = deps({ hasAiConsent: () => hasAiConsent(store, "u1") });
+
+      expect((await handleScan(form({ pack: "car", photo: jpeg() }), d)).status).toBe(200);
+      expect(d.upload).toHaveBeenCalledOnce();
+    });
+
+    it("one person's consent doesn't count for another account", async () => {
+      const store = createMemoryAiConsentStore();
+      await store.record("u1", 1);
+      const d = deps({ hasAiConsent: () => hasAiConsent(store, "u2") });
+
+      expect((await handleScan(form({ pack: "car", photo: jpeg() }), d)).status).toBe(403);
+    });
+
+    it("fails closed when consent can't be checked", async () => {
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      const d = deps({ hasAiConsent: vi.fn(async () => Promise.reject(new Error("db down"))) });
+
+      expect((await handleScan(form({ pack: "car", photo: jpeg() }), d)).status).toBe(503);
+      expect(d.upload).not.toHaveBeenCalled();
+      expect(d.reserve).not.toHaveBeenCalled();
+    });
+
+    it("still needs the 18+ confirmation for clothing after consent", async () => {
+      const d = deps({ hasAiConsent: async () => true });
+      expect((await handleScan(form({ pack: "clothing", photo: jpeg() }), d)).status).toBe(400);
+    });
   });
 });

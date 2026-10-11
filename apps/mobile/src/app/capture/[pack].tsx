@@ -4,6 +4,7 @@ import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { AiConsentGate } from "@/components/ai-consent-gate";
 import { Button } from "@/components/button";
 import { PhotoCamera } from "@/components/photo-camera";
 import type { Photo } from "@/lib/photo";
@@ -17,8 +18,9 @@ type Step =
   | { kind: "scanning"; photo: Photo };
 
 /**
- * Take (or pick) the photo, check it, and send it to be read. Clothing is live camera only and
- * asks for 18+ first; the server checks both again.
+ * Take (or pick) the photo, check it, and send it to be read. The first time, the person allows
+ * photos to go to our AI partners. Clothing is live camera only and asks for 18+ first; the server
+ * checks all three again.
  */
 export default function Capture() {
   const params = useLocalSearchParams<{ pack: string }>();
@@ -38,30 +40,32 @@ export default function Capture() {
     <View style={styles.screen}>
       {/* No going back mid-scan: the answer would have nowhere to land. */}
       <Stack.Screen options={{ title: pack.label, gestureEnabled: step.kind !== "scanning", headerBackVisible: step.kind !== "scanning" }} />
-      {step.kind === "adult" ? (
-        <AdultGate
-          onConfirm={() => {
-            setIsAdultConfirmed(true);
-            setStep({ kind: "camera" });
-          }}
-        />
-      ) : step.kind === "camera" ? (
-        <PhotoCamera
-          facing={pack.capture.camera === "user" ? "front" : "back"}
-          cue={pack.capture.steps[0]}
-          countdownSec={pack.capture.countdownSec}
-          allowLibrary={pack.capture.allowUpload}
-          onPhoto={(photo) => setStep({ kind: "review", photo })}
-        />
-      ) : (
-        <Review
-          photo={step.photo}
-          isScanning={step.kind === "scanning"}
-          error={step.kind === "review" ? step.error : undefined}
-          onRetake={() => setStep({ kind: "camera" })}
-          onUse={() => void scan(step.photo)}
-        />
-      )}
+      <AiConsentGate>
+        {step.kind === "adult" ? (
+          <AdultGate
+            onConfirm={() => {
+              setIsAdultConfirmed(true);
+              setStep({ kind: "camera" });
+            }}
+          />
+        ) : step.kind === "camera" ? (
+          <PhotoCamera
+            facing={pack.capture.camera === "user" ? "front" : "back"}
+            cue={pack.capture.steps[0]}
+            countdownSec={pack.capture.countdownSec}
+            allowLibrary={pack.capture.allowUpload}
+            onPhoto={(photo) => setStep({ kind: "review", photo })}
+          />
+        ) : (
+          <Review
+            photo={step.photo}
+            isScanning={step.kind === "scanning"}
+            error={step.kind === "review" ? step.error : undefined}
+            onRetake={() => setStep({ kind: "camera" })}
+            onUse={() => void scan(step.photo)}
+          />
+        )}
+      </AiConsentGate>
     </View>
   );
 }

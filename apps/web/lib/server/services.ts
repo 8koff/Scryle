@@ -80,6 +80,7 @@ function create() {
     shopProductsLimit: limiter("shop-products", 120),
     goLimit: limiter("go", 120),
     waitlistLimit: limiter("waitlist", 5),
+    aiConsentLimit: limiter("ai-consent", 30),
     /** Store search (SerpApi). Found products live in the database so every server sees them. */
     shop: {
       store: db ? createSupabaseShopStore(db) : createMemoryShopStore(),
