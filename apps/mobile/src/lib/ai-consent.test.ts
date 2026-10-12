@@ -40,6 +40,13 @@ describe("checkAiConsent", () => {
     mockGetApi.mockResolvedValueOnce({ status: "error", message: "offline" });
     expect(await checkAiConsent("u1")).toEqual({ status: "error", message: "offline" });
   });
+
+  test("permission for different wording does not open the camera", async () => {
+    mockGetApi.mockResolvedValueOnce({ status: "ready", data: { hasConsented: true, version: AI_CONSENT_VERSION + 1 } });
+    expect(await checkAiConsent("u1")).toMatchObject({ status: "error" });
+    mockGetApi.mockResolvedValueOnce(answer(false));
+    expect(await checkAiConsent("u1")).toEqual({ status: "needed" });
+  });
 });
 
 describe("allowAiConsent", () => {
@@ -55,6 +62,16 @@ describe("allowAiConsent", () => {
   test("a failed save is not remembered as a yes", async () => {
     mockPostJson.mockResolvedValueOnce({ status: "error", message: "Please update the app" });
     expect(await allowAiConsent("u1")).toEqual({ status: "error", message: "Please update the app" });
+    mockGetApi.mockResolvedValueOnce(answer(false));
+    expect(await checkAiConsent("u1")).toEqual({ status: "needed" });
+  });
+
+  test.each([
+    { hasConsented: false, version: AI_CONSENT_VERSION },
+    { hasConsented: true, version: AI_CONSENT_VERSION + 1 },
+  ])("an unconfirmed save stays blocked and is not remembered: %j", async (data) => {
+    mockPostJson.mockResolvedValueOnce({ status: "ready", data });
+    expect(await allowAiConsent("u1")).toMatchObject({ status: "error" });
     mockGetApi.mockResolvedValueOnce(answer(false));
     expect(await checkAiConsent("u1")).toEqual({ status: "needed" });
   });

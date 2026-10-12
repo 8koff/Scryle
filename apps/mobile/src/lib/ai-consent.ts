@@ -15,6 +15,9 @@ export async function checkAiConsent(userId: string): Promise<Exclude<AiConsent,
   if (allowedAccounts.has(userId)) return { status: "allowed" };
   const result = await getApi<AiConsentInfo>("/api/ai-consent");
   if (result.status === "error") return { status: "error", message: result.message };
+  if (result.data.version !== AI_CONSENT_VERSION) {
+    return { status: "error", message: "Please update Scryle to review the latest photo permission." };
+  }
   if (!result.data.hasConsented) return { status: "needed" };
   allowedAccounts.add(userId);
   return { status: "allowed" };
@@ -24,6 +27,12 @@ export async function checkAiConsent(userId: string): Promise<Exclude<AiConsent,
 export async function allowAiConsent(userId: string): Promise<Exclude<AiConsent, { status: "checking" }>> {
   const result = await postJson<AiConsentInfo>("/api/ai-consent", { version: AI_CONSENT_VERSION });
   if (result.status === "error") return { status: "error", message: result.message };
+  if (result.data.version !== AI_CONSENT_VERSION) {
+    return { status: "error", message: "Please update Scryle to review the latest photo permission." };
+  }
+  if (result.data.hasConsented !== true) {
+    return { status: "error", message: "Your permission wasn't saved. Please try again." };
+  }
   allowedAccounts.add(userId);
   return { status: "allowed" };
 }

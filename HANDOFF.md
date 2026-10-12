@@ -378,3 +378,13 @@ Fixes blockers 1 and 2 of the iOS ship check (Apple guideline 5.1.2(i): ask befo
   refunds via Apple/Stripe, RevenueCat) and a new Privacy section "Your photos and AI" (`/privacy#ai`). Prices and
   swap counts aren't hard-coded: the plans screen shows them. Owner approval needed (protected files).
 - Withdrawing consent is by email or closing the account for now; an in-app switch is a possible follow-up.
+
+### Consent save confirmation (2026-10-11)
+
+- Mobile opens the camera only after the server confirms permission for this build's wording version.
+  An unconfirmed save or a different version stays blocked and is not cached as permission.
+- Three new regression cases failed before the fix and pass now. Full typecheck/test: 6/6 tasks passed,
+  mobile 100 tests; core and web checks reused passing cache. Web lint: no errors, four existing warnings.
+- Only mobile consent logic/tests and this handoff changed in this follow-up. No additional protected files,
+  database changes, dependencies, deployments or paid calls. Subscription integration remains blocked by
+  the other session's uncommitted work in the main checkout.
