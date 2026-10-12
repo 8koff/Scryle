@@ -36,6 +36,22 @@ npx jest
 npx expo lint
 ```
 
+## Native startup on iOS 27
+
+SDK 57 needs scene support when built with Xcode 27. The `expo-build-properties` plugin in `app.json`
+sets `ios.enableSceneSupport: true`, so a fresh prebuild or EAS build generates the correct startup code.
+Keep this setting in source control; hand-editing the ignored `ios/` folder loses the fix on the next build.
+The compatible plugin version is recorded in `package.json` and the root lockfile.
+
+After changing this setting, regenerate the native project in your own checkout:
+
+```bash
+npx expo prebuild --clean --platform ios
+```
+
+This replaces generated files in `ios/`; preserve any local native edits first. Once the app upgrades to
+SDK 58, review whether this opt-in can be removed. See [Expo's scene lifecycle guide](https://github.com/expo/fyi/blob/main/ios-scene-lifecycle.md).
+
 ## Things to know
 
 - **Two React versions.** Expo SDK 57 needs React 19.2.3; the web uses 19.2.8. npm keeps ours in
