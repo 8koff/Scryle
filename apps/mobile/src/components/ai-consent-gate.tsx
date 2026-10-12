@@ -1,12 +1,13 @@
 import { router } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { type ReactNode, useSyncExternalStore } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 import { type Edge, SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/button";
-import { LegalLinks } from "@/components/legal-links";
 import { useAiConsent } from "@/lib/ai-consent";
+import { API_URL } from "@/lib/config";
 import { account } from "@/lib/use-account";
-import { colors, display, fonts, radius, space } from "@/theme";
+import { colors, display, fonts, space } from "@/theme";
 
 const useUserId = () =>
   useSyncExternalStore(account.subscribe, () => {
@@ -15,13 +16,14 @@ const useUserId = () =>
   });
 
 /**
- * Apple guideline 5.1.2(i): before the first photo goes to a third-party AI, say what is sent, to
- * whom, why and for how long, and ask. Shows `children` (the camera) only once the server says this
- * account allowed it. The server checks again on every scan. `edges`: add "top" on a screen with no
- * header bar.
+ * Apple guideline 5.1.2(i): before the first photo goes to a third-party AI, say so and ask. Shows
+ * `children` (the camera) only once the server says this account allowed it. The server checks
+ * again on every scan. `edges`: add "top" on a screen with no header bar.
  *
+ * The owner chose (2026-10-11) not to name the AI companies in the app: "Who we work with" opens the
+ * Privacy page's "Your photos and AI" section, which names them, what they keep and for how long.
  * If this wording changes in a way that matters, raise AI_CONSENT_VERSION (packages/core) and update
- * the Privacy page to match, so everyone is asked again.
+ * that section to match, so everyone is asked again.
  */
 export function AiConsentGate({ children, edges = ["bottom"] }: { children: ReactNode; edges?: Edge[] }) {
   const { state, isAllowing, allow, retry } = useAiConsent(useUserId());
@@ -40,29 +42,19 @@ export function AiConsentGate({ children, edges = ["bottom"] }: { children: Reac
     <SafeAreaView style={styles.screen} edges={edges}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title} accessibilityRole="header">
-          Your photo and our AI
+          Before your first scan
         </Text>
         <Text style={styles.body}>
-          To find what you can swap, Scryle sends your photo to two AI companies. Nothing is sent until you tap Allow.
+          Scryle uses trusted AI partners to read your photo and make your swap. Your photo is only used for that. We never
+          sell it or use it to train AI.
         </Text>
-
-        <View style={styles.partners}>
-          <Partner name="Anthropic (Claude)">
-            Reads your photo to find the parts you can swap. It deletes the photo within 30 days and doesn&apos;t train its AI
-            on it.
-          </Partner>
-          <Partner name="Higgsfield">
-            Holds your photo and makes your swap. It keeps its copies at unlisted links for a limited time. We can&apos;t delete
-            those.
-          </Partner>
-        </View>
-
-        <Text style={styles.body}>
-          If you make a swap, we keep the photo and the swap in your account until you close it. We never sell your photos or
-          use them to train AI.
+        <Text
+          accessibilityRole="link"
+          style={styles.link}
+          onPress={() => void WebBrowser.openBrowserAsync(`${API_URL}/privacy#ai`)}
+        >
+          Who we work with ›
         </Text>
-        <Text style={styles.body}>You can say no. Scryle can&apos;t read your photos without this.</Text>
-        <LegalLinks />
       </ScrollView>
 
       <View style={styles.actions}>
@@ -82,25 +74,13 @@ export function AiConsentGate({ children, edges = ["bottom"] }: { children: Reac
   );
 }
 
-function Partner({ name, children }: { name: string; children: ReactNode }) {
-  return (
-    <View style={styles.partner}>
-      <Text style={styles.partnerName}>{name}</Text>
-      <Text style={styles.partnerBody}>{children}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg },
   content: { padding: space.lg, gap: space.md },
   title: { ...display, fontSize: 32, lineHeight: 35, marginTop: space.md },
   body: { fontFamily: fonts.regular, fontSize: 16, lineHeight: 23, color: colors.muted },
-  partners: { gap: space.sm },
-  partner: { padding: space.md, borderRadius: radius.md, backgroundColor: colors.surface, gap: space.xs },
-  partnerName: { fontFamily: fonts.semibold, fontSize: 17, color: colors.fg },
-  partnerBody: { fontFamily: fonts.regular, fontSize: 15, lineHeight: 21, color: colors.muted },
+  link: { fontFamily: fonts.medium, fontSize: 15, color: colors.accentInk, paddingVertical: space.xs, alignSelf: "flex-start" },
   actions: { paddingHorizontal: space.lg, paddingBottom: space.sm, gap: space.sm },
   error: { fontFamily: fonts.medium, fontSize: 15, lineHeight: 21, color: colors.fg, textAlign: "center" },
 });

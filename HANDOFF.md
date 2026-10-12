@@ -361,8 +361,9 @@ them joined (rebuild it by concatenating the migration files after a header line
 
 Fixes blockers 1 and 2 of the iOS ship check (Apple guideline 5.1.2(i): ask before photos go to a third-party AI).
 - **App:** `AiConsentGate` (`apps/mobile/src/components/ai-consent-gate.tsx`) wraps the camera in `capture/[pack]` and
-  `snap`. First time: "Your photo and our AI" screen (Anthropic reads, Higgsfield stores and makes the swap, retention,
-  Allow / Not now). The answer comes from the server; a yes is remembered for the app session (`lib/ai-consent.ts`).
+  `snap`. First time: "Before your first scan" screen ("trusted AI partners", Allow / Not now). **Owner's choice
+  (2026-10-11): no company names in the app.** "Who we work with ›" opens `/privacy#ai`, which names Anthropic and
+  Higgsfield with retention. The answer comes from the server; a yes is remembered for the app session (`lib/ai-consent.ts`).
 - **Server:** `GET/POST /api/ai-consent` (`lib/server/ai-consent.ts`, table `ai_consents`, migration **0013**, not run on
   production yet). `/api/scan` now refuses a **signed-in** scan without consent (403), before uploading or booking
   spend; a sign-in header that doesn't check out gets 401; consent check errors fail closed (503).

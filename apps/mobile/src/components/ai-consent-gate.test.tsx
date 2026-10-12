@@ -15,7 +15,9 @@ jest.mock("@/lib/use-account", () => ({
   account: { subscribe: () => () => {}, getSnapshot: () => ({ status: "signed-in", userId: "u1" }) },
 }));
 jest.mock("expo-router", () => ({ router: { back: () => mockBack() } }));
-jest.mock("@/components/legal-links", () => ({ LegalLinks: () => null }));
+const mockOpenBrowser = jest.fn();
+jest.mock("expo-web-browser", () => ({ openBrowserAsync: (url: string) => mockOpenBrowser(url) }));
+jest.mock("@/lib/config", () => ({ API_URL: "https://scryle.test" }));
 
 const answer = (hasConsented: boolean) => ({ status: "ready", data: { hasConsented, version: 1 } });
 const Camera = () => <Text>camera</Text>;
@@ -26,7 +28,7 @@ beforeEach(() => {
 });
 
 describe("AiConsentGate", () => {
-  test("before the first scan: explains what is sent and to whom, and hides the camera", async () => {
+  test("before the first scan: says the photo goes to AI partners, links to who they are, and hides the camera", async () => {
     mockGetApi.mockResolvedValueOnce(answer(false));
     await render(
       <AiConsentGate>
@@ -34,11 +36,13 @@ describe("AiConsentGate", () => {
       </AiConsentGate>,
     );
 
-    expect(await screen.findByText("Your photo and our AI")).toBeTruthy();
-    expect(screen.getByText("Anthropic (Claude)")).toBeTruthy();
-    expect(screen.getByText("Higgsfield")).toBeTruthy();
-    expect(screen.getByText(/deletes the photo within 30 days/)).toBeTruthy();
+    expect(await screen.findByText("Before your first scan")).toBeTruthy();
+    expect(screen.getByText(/trusted AI partners to read your photo/)).toBeTruthy();
     expect(screen.queryByText("camera")).toBeNull();
+
+    // The partners are named on the Privacy page, one tap away.
+    await fireEvent.press(screen.getByRole("link", { name: "Who we work with ›" }));
+    expect(mockOpenBrowser).toHaveBeenCalledWith("https://scryle.test/privacy#ai");
   });
 
   test("Allow saves consent on the server, then opens the camera", async () => {
@@ -80,7 +84,7 @@ describe("AiConsentGate", () => {
     );
 
     expect(await screen.findByText("camera")).toBeTruthy();
-    expect(screen.queryByText("Your photo and our AI")).toBeNull();
+    expect(screen.queryByText("Before your first scan")).toBeNull();
   });
 
   test("if the server can't be reached, the camera stays closed", async () => {

@@ -57,12 +57,12 @@ const sections: LegalSection[] = [
     body: (
       <>
         <p>
-          To find what you can swap and make your picture, your photo is sent to two AI companies that work for us:
-          Anthropic reads it, and Higgsfield stores it and makes the picture. In the iPhone app we ask you before your first
-          scan, and nothing is sent until you tap <strong>Allow</strong>. If you say no, you can&rsquo;t scan photos.
+          To find what you can swap and make your picture, your photo is sent to AI partners that work for us. In the
+          iPhone app we ask you before your first scan, and nothing is sent until you tap <strong>Allow</strong>. If you
+          say no, you can&rsquo;t scan photos.
         </p>
         <p>
-          What each company receives, how long it keeps your photo and what you can delete are in the{" "}
+          Who our AI partners are, what they receive, how long they keep your photo and what you can delete are in the{" "}
           <Link href="/privacy#ai" className="font-semibold text-accent-ink underline-offset-4 hover:underline">
             Privacy Policy
           </Link>
