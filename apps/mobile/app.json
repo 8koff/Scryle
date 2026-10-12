@@ -50,7 +50,15 @@
           "backgroundColor": "#121110"
         }
       ],
-      "expo-iap"
+      "expo-iap",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "enableSceneSupport": true
+          }
+        }
+      ]
     ],
     "extra": {
       "router": {},

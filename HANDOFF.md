@@ -356,3 +356,20 @@ them joined (rebuild it by concatenating the migration files after a header line
   unverified (no iPhone, local Postgres or Docker used); provider tests are mocked. No dependency was added.
 - This branch remains local. GitHub CLI is unavailable; no PR, push, merge, or release was performed. Existing
   `apps/mobile/tsconfig.json` edits and untracked `ARCHITECTURE.md` are outside this change and remain untouched.
+
+## Persistent iOS 27 startup fix (2026-10-11, `fix/ios-scene-lifecycle`)
+
+- Founder approved adding Expo's official `expo-build-properties` plugin. Version `~57.0.22` is installed and
+  locked; `app.json` sets `ios.enableSceneSupport: true`. This preserves the startup fix in fresh prebuilds and
+  EAS builds instead of relying on hand-edits to the ignored `ios/` directory.
+- A fresh prebuild before the change lacked a scene manifest and started React Native from AppDelegate.
+  A clean prebuild after the change generates `EXExpoAppSceneDelegate` in the scene manifest and makes
+  AppDelegate conform to `ExpoReactNativeFactoryProvider`, without the old window/startup block.
+- Verified: local Xcode Release simulator build succeeded; installed and launched on iPhone 17 / iOS 27.
+  Scryle reached its expected missing-account-keys screen, and its process remained running. JavaScript was
+  bundled in the Release app; Metro wasn't used. Account, purchase and real-device checks remain separate.
+- `npx turbo run typecheck test`: all six tasks pass (core 46, web 424, mobile 86 tests). Web ESLint has zero
+  errors and the same four existing image-file warnings. No production action or paid API call was made.
+- Protected files for founder review: `apps/mobile/package.json` and `package-lock.json`; review the native
+  build setting in `apps/mobile/app.json` too. This branch starts from committed `feat/ios-app`; the main
+  checkout's uncommitted subscription work was not edited or copied. Keep both sets of changes when integrating.
