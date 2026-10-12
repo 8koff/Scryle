@@ -22,10 +22,7 @@ export type ScanDeps = {
   reserve: () => Promise<boolean>;
   /** Gives the booking back when the photo was never read. */
   release: () => Promise<void>;
-  /**
-   * For a signed-in caller: did they allow photos to go to our AI partners? Checked before anything
-   * is uploaded or booked. Absent for signed-out website visitors (see `scanCaller` in ai-consent.ts).
-   */
+  /** For a signed-in caller: is current AI consent stored for this account? */
   hasAiConsent?: () => Promise<boolean>;
 };
 
@@ -43,6 +40,9 @@ export async function handleScan(form: FormData, deps: ScanDeps): Promise<Result
     return fail(400, "Please confirm you are 18 or older.");
   }
 
+  // Visitors have no account to save a choice against, so they explicitly allow each scan.
+  // Signed-in callers must have a server-side record. Either way, no upload or spend occurs first.
+  if (!deps.hasAiConsent && form.get("ai_consent") !== "yes") return fail(403, AI_CONSENT_NEEDED);
   if (deps.hasAiConsent) {
     let hasConsent: boolean;
     try {

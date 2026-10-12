@@ -72,7 +72,7 @@ export const AI_CONSENT_NEEDED = "Please allow Scryle to send your photo to its 
 
 /**
  * Who is scanning, for the consent rule:
- * - no sign-in header: a website visitor. The website shows its own notice on the scan page.
+ * - no sign-in header: a website visitor. The scan form must contain an explicit Allow.
  * - a valid sign-in: the account must have allowed the current wording (the iPhone app always signs in).
  * - a sign-in header that doesn't check out: refused, so a bad token can't skip the consent check.
  */

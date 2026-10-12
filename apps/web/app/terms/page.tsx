@@ -58,8 +58,8 @@ const sections: LegalSection[] = [
       <>
         <p>
           To find what you can swap and make your picture, your photo is sent to AI partners that work for us. In the
-          iPhone app we ask you before your first scan, and nothing is sent until you tap <strong>Allow</strong>. If you
-          say no, you can&rsquo;t scan photos.
+          iPhone app we ask you before your first scan. On the website, we ask before each scan. Nothing is sent unless you
+          allow it. If you say no, you can&rsquo;t scan photos.
         </p>
         <p>
           Who our AI partners are, what they receive, how long they keep your photo and what you can delete are in the{" "}

@@ -29,8 +29,8 @@ const sections: LegalSection[] = [
           we never see the card number.
         </li>
         <li>
-          <strong>Your AI choice</strong>: that you tapped Allow before your first scan, when, and which version of the
-          notice you saw.
+          <strong>Your AI choice in the iPhone app</strong>: that you tapped Allow before your first scan, when, and which
+          version of the notice you saw. On the website, you allow each scan and we don&rsquo;t save that choice to your account.
         </li>
         <li>
           <strong>Invites</strong>: your invite code, and who invited you.
@@ -74,9 +74,9 @@ const sections: LegalSection[] = [
       <>
         <p>
           {BRAND.name} works by sending your photo to two AI companies. In the iPhone app we ask you before your first scan,
-          and nothing is sent until you tap <strong>Allow</strong>. On the website, the scan page tells you before you take
-          the photo, and Clothing asks you to agree. If you say no, you can still use your account, but you can&rsquo;t scan
-          photos.
+          and nothing is sent until you tap <strong>Allow</strong>. On the website, you check a box to allow each scan;
+          Clothing also asks you to confirm you&rsquo;re 18 or older. If you say no, you can still use your account, but
+          you can&rsquo;t scan photos.
         </p>
         <ul>
           <li>

@@ -367,8 +367,11 @@ Fixes blockers 1 and 2 of the iOS ship check (Apple guideline 5.1.2(i): ask befo
 - **Server:** `GET/POST /api/ai-consent` (`lib/server/ai-consent.ts`, table `ai_consents`, migration **0013**, not run on
   production yet). `/api/scan` now refuses a **signed-in** scan without consent (403), before uploading or booking
   spend; a sign-in header that doesn't check out gets 401; consent check errors fail closed (503).
-- **Signed-out website scans are unchanged** (they keep the on-page notice; Clothing has its checkbox). Follow-up if
-  the website should ask the same way.
+- **Website:** every category now asks for a separate AI Allow checkbox before camera, upload or drag-and-drop.
+  A signed-out visitor's scan must carry `ai_consent=yes` or `/api/scan` refuses it (403) before upload or spend.
+  The checkbox resets after a successful scan. Clothing's 18+ checkbox stays separate. The page says "AI partners"
+  and links to `/privacy#ai`; company names stay on the Privacy page. Website visitor choices aren't saved to an
+  account, unlike the iPhone app's one-time consent.
 - **Version:** `AI_CONSENT_VERSION` in `packages/core/src/ai-consent.ts`. Raise it (and update the app screen and
   Privacy) when a new AI company or a new use of photos is added: everyone is asked again.
 - **Terms and Privacy** rewritten for plans (Starter/Plus/Pro, monthly reset, no rollover, auto-renew, cancelling,

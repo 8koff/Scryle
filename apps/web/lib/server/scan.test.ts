@@ -13,6 +13,7 @@ function deps(overrides: Partial<ScanDeps> = {}): ScanDeps {
     sign: vi.fn(() => "signed-token"),
     reserve: vi.fn(async () => true),
     release: vi.fn(async () => {}),
+    hasAiConsent: vi.fn(async () => true),
     ...overrides,
   };
 }
@@ -173,6 +174,30 @@ describe("handleScan", () => {
     it("still needs the 18+ confirmation for clothing after consent", async () => {
       const d = deps({ hasAiConsent: async () => true });
       expect((await handleScan(form({ pack: "clothing", photo: jpeg() }), d)).status).toBe(400);
+    });
+  });
+
+  describe("AI-data consent (website visitors)", () => {
+    it("refuses a visitor scan without an explicit Allow before uploading or booking spend", async () => {
+      const d = deps({ hasAiConsent: undefined });
+      expect(await handleScan(form({ pack: "room", photo: jpeg() }), d)).toEqual({
+        status: 403,
+        body: { success: false, error: AI_CONSENT_NEEDED },
+      });
+      expect(d.upload).not.toHaveBeenCalled();
+      expect(d.analyze).not.toHaveBeenCalled();
+      expect(d.reserve).not.toHaveBeenCalled();
+    });
+
+    it("scans after the visitor explicitly allows this scan", async () => {
+      const d = deps({ hasAiConsent: undefined });
+      expect((await handleScan(form({ pack: "room", photo: jpeg(), ai_consent: "yes" }), d)).status).toBe(200);
+      expect(d.upload).toHaveBeenCalledOnce();
+    });
+
+    it("does not count a different form value as Allow", async () => {
+      const d = deps({ hasAiConsent: undefined });
+      expect((await handleScan(form({ pack: "room", photo: jpeg(), ai_consent: "no" }), d)).status).toBe(403);
     });
   });
 });
