@@ -18,6 +18,8 @@ jest.mock("expo-router", () => ({ router: { back: () => mockBack() } }));
 const mockOpenBrowser = jest.fn();
 jest.mock("expo-web-browser", () => ({ openBrowserAsync: (url: string) => mockOpenBrowser(url) }));
 jest.mock("@/lib/config", () => ({ API_URL: "https://scryle.test" }));
+// The example picture is a native gesture view; its own screens cover it.
+jest.mock("@/components/compare-slider", () => ({ CompareSlider: () => null }));
 
 const answer = (hasConsented: boolean) => ({ status: "ready", data: { hasConsented, version: 1 } });
 const Camera = () => <Text>camera</Text>;
@@ -37,7 +39,8 @@ describe("AiConsentGate", () => {
     );
 
     expect(await screen.findByText("Before your first scan")).toBeTruthy();
-    expect(screen.getByText(/trusted AI partners to read your photo/)).toBeTruthy();
+    expect(screen.getByText("Read by our AI partners")).toBeTruthy();
+    expect(screen.getByText(/Never sold, and never used to train AI/)).toBeTruthy();
     expect(screen.queryByText("camera")).toBeNull();
 
     // The partners are named on the Privacy page, one tap away.

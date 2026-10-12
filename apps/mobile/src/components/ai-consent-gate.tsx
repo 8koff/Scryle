@@ -4,10 +4,21 @@ import { type ReactNode, useSyncExternalStore } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 import { type Edge, SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/button";
+import { CompareSlider } from "@/components/compare-slider";
 import { useAiConsent } from "@/lib/ai-consent";
 import { API_URL } from "@/lib/config";
+import { PACK_COVERS } from "@/lib/packs";
 import { account } from "@/lib/use-account";
-import { colors, display, fonts, space } from "@/theme";
+import { colors, display, fonts, radius, space } from "@/theme";
+
+/** What Allow means, one short line each. */
+const POINTS = [
+  { title: "Read by our AI partners", body: "They find what you can swap and make your new picture." },
+  { title: "Only used for your swaps", body: "Never sold, and never used to train AI." },
+  { title: "Your choice", body: "Say no and nothing is sent. Scryle just can't read photos without it." },
+] as const;
+
+const EXAMPLE = PACK_COVERS.room;
 
 const useUserId = () =>
   useSyncExternalStore(account.subscribe, () => {
@@ -41,13 +52,26 @@ export function AiConsentGate({ children, edges = ["bottom"] }: { children: Reac
   return (
     <SafeAreaView style={styles.screen} edges={edges}>
       <ScrollView contentContainerStyle={styles.content}>
+        {/* What Allow unlocks: a real example swap, labelled as an AI edit like every "after" in the app. */}
+        <CompareSlider
+          before={EXAMPLE.before}
+          after={EXAMPLE.after ?? EXAMPLE.before}
+          hint
+          dragAnywhere
+          style={styles.example}
+          accessibilityLabel="An example swap of a living room. The right side is an AI edit."
+        />
         <Text style={styles.title} accessibilityRole="header">
           Before your first scan
         </Text>
-        <Text style={styles.body}>
-          Scryle uses trusted AI partners to read your photo and make your swap. Your photo is only used for that. We never
-          sell it or use it to train AI.
-        </Text>
+        <View style={styles.points}>
+          {POINTS.map((point, i) => (
+            <View key={point.title} style={[styles.point, i > 0 && styles.pointDivider]}>
+              <Text style={styles.pointTitle}>{point.title}</Text>
+              <Text style={styles.pointBody}>{point.body}</Text>
+            </View>
+          ))}
+        </View>
         <Text
           accessibilityRole="link"
           style={styles.link}
@@ -77,9 +101,14 @@ export function AiConsentGate({ children, edges = ["bottom"] }: { children: Reac
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.bg },
-  content: { padding: space.lg, gap: space.md },
-  title: { ...display, fontSize: 32, lineHeight: 35, marginTop: space.md },
-  body: { fontFamily: fonts.regular, fontSize: 16, lineHeight: 23, color: colors.muted },
+  content: { padding: space.lg, paddingTop: space.md, gap: space.md },
+  example: { height: 220, borderRadius: radius.lg },
+  title: { ...display, fontSize: 30, lineHeight: 34, marginTop: space.sm },
+  points: { borderRadius: radius.md, backgroundColor: colors.surface, paddingHorizontal: space.md },
+  point: { paddingVertical: 14, gap: 2 },
+  pointDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
+  pointTitle: { fontFamily: fonts.semibold, fontSize: 16, color: colors.fg },
+  pointBody: { fontFamily: fonts.regular, fontSize: 15, lineHeight: 21, color: colors.muted },
   link: { fontFamily: fonts.medium, fontSize: 15, color: colors.accentInk, paddingVertical: space.xs, alignSelf: "flex-start" },
   actions: { paddingHorizontal: space.lg, paddingBottom: space.sm, gap: space.sm },
   error: { fontFamily: fonts.medium, fontSize: 15, lineHeight: 21, color: colors.fg, textAlign: "center" },
