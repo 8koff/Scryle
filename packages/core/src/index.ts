@@ -59,3 +59,5 @@ export type {
 
 export { fitsPart, STUDIO_OPTIONS, studioParts } from "./studio";
 export type { StudioOption, StudioPart } from "./studio";
+
+export { AI_CONSENT_VERSION, type AiConsentInfo } from "./ai-consent";

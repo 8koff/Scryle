@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { AiConsentGate } from "@/components/ai-consent-gate";
 import { Button } from "@/components/button";
 import { PhotoCamera, type PhotoSource } from "@/components/photo-camera";
 import { PressableScale } from "@/components/pressable-scale";
@@ -19,8 +20,9 @@ type Step =
   | { kind: "pick"; photo: Photo; source: PhotoSource; scanning?: PackId; error?: string };
 
 /**
- * Camera first, category second: the big button on Home opens this. Clothing never takes a
- * photo from here: it needs the 18+ check and the selfie camera, so it opens its own flow.
+ * Camera first, category second: the big button on Home opens this. The first time, the person
+ * allows photos to go to our AI partners. Clothing never takes a photo from here: it needs the 18+
+ * check and the selfie camera, so it opens its own flow.
  */
 export default function Snap() {
   const [step, setStep] = useState<Step>({ kind: "camera" });
@@ -38,23 +40,25 @@ export default function Snap() {
     <View style={styles.screen}>
       {/* No swiping away mid-scan: the answer would have nowhere to land. */}
       <Stack.Screen options={{ gestureEnabled: !isScanning }} />
-      {step.kind === "camera" ? (
-        <PhotoCamera
-          facing="back"
-          allowLibrary
-          onPhoto={(photo, source) => setStep({ kind: "pick", photo, source })}
-          onClose={() => router.back()}
-        />
-      ) : (
-        <Pick
-          photo={step.photo}
-          packs={packsFor(step.source)}
-          scanning={step.scanning}
-          error={step.error}
-          onChoose={(pack) => void choose(pack)}
-          onRetake={() => setStep({ kind: "camera" })}
-        />
-      )}
+      <AiConsentGate edges={["top", "bottom"]}>
+        {step.kind === "camera" ? (
+          <PhotoCamera
+            facing="back"
+            allowLibrary
+            onPhoto={(photo, source) => setStep({ kind: "pick", photo, source })}
+            onClose={() => router.back()}
+          />
+        ) : (
+          <Pick
+            photo={step.photo}
+            packs={packsFor(step.source)}
+            scanning={step.scanning}
+            error={step.error}
+            onChoose={(pack) => void choose(pack)}
+            onRetake={() => setStep({ kind: "camera" })}
+          />
+        )}
+      </AiConsentGate>
     </View>
   );
 }

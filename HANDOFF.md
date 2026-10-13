@@ -450,3 +450,35 @@ them joined (rebuild it by concatenating the migration files after a header line
   unverified (no iPhone, local Postgres or Docker used); provider tests are mocked. No dependency was added.
 - This branch remains local. GitHub CLI is unavailable; no PR, push, merge, or release was performed. Existing
   `apps/mobile/tsconfig.json` edits and untracked `ARCHITECTURE.md` are outside this change and remain untouched.
+
+## AI-data consent and subscription Terms/Privacy (2026-10-11, branch `feat/ai-consent-legal`)
+
+Fixes blockers 1 and 2 of the iOS ship check (Apple guideline 5.1.2(i): ask before photos go to a third-party AI).
+- **App:** `AiConsentGate` (`apps/mobile/src/components/ai-consent-gate.tsx`) wraps the camera in `capture/[pack]` and
+  `snap`. First time: "Before your first scan" screen ("trusted AI partners", Allow / Not now). **Owner's choice
+  (2026-10-11): no company names in the app.** "Who we work with ›" opens `/privacy#ai`, which names Anthropic and
+  Higgsfield with retention. The answer comes from the server; a yes is remembered for the app session (`lib/ai-consent.ts`).
+- **Server:** `GET/POST /api/ai-consent` (`lib/server/ai-consent.ts`, table `ai_consents`, migration **0013**, not run on
+  production yet). `/api/scan` now refuses a **signed-in** scan without consent (403), before uploading or booking
+  spend; a sign-in header that doesn't check out gets 401; consent check errors fail closed (503).
+- **Website:** every category now asks for a separate AI Allow checkbox before camera, upload or drag-and-drop.
+  A signed-out visitor's scan must carry `ai_consent=yes` or `/api/scan` refuses it (403) before upload or spend.
+  The checkbox resets after a successful scan. Clothing's 18+ checkbox stays separate. The page says "AI partners"
+  and links to `/privacy#ai`; company names stay on the Privacy page. Website visitor choices aren't saved to an
+  account, unlike the iPhone app's one-time consent.
+- **Version:** `AI_CONSENT_VERSION` in `packages/core/src/ai-consent.ts`. Raise it (and update the app screen and
+  Privacy) when a new AI company or a new use of photos is added: everyone is asked again.
+- **Terms and Privacy** rewritten for plans (Starter/Plus/Pro, monthly reset, no rollover, auto-renew, cancelling,
+  refunds via Apple/Stripe, RevenueCat) and a new Privacy section "Your photos and AI" (`/privacy#ai`). Prices and
+  swap counts aren't hard-coded: the plans screen shows them. Owner approval needed (protected files).
+- Withdrawing consent is by email or closing the account for now; an in-app switch is a possible follow-up.
+
+### Consent save confirmation (2026-10-11)
+
+- Mobile opens the camera only after the server confirms permission for this build's wording version.
+  An unconfirmed save or a different version stays blocked and is not cached as permission.
+- Three new regression cases failed before the fix and pass now. Full typecheck/test: 6/6 tasks passed,
+  mobile 100 tests; core and web checks reused passing cache. Web lint: no errors, four existing warnings.
+- Only mobile consent logic/tests and this handoff changed in this follow-up. No additional protected files,
+  database changes, dependencies, deployments or paid calls. Subscription integration remains blocked by
+  the other session's uncommitted work in the main checkout.

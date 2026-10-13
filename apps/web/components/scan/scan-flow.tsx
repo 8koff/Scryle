@@ -6,6 +6,7 @@ import type { Pack } from "@retrofit/core";
 import type { ApiResponse, ScanResult } from "@/lib/api";
 import { browserBuildStore } from "@/lib/build/store";
 import { takeRemix } from "@/lib/build/remix";
+import { scanForm } from "@/lib/scan/form";
 import { CameraCapture, type CapturedPhoto } from "./camera-capture";
 import { ScanIntro } from "./scan-intro";
 import { ScanReview, type ReviewState } from "./scan-review";
@@ -33,6 +34,7 @@ async function prepareFile(file: File): Promise<CapturedPhoto> {
 export function ScanFlow({ pack }: { pack: Pack }) {
   const [step, setStep] = useState<Step>({ kind: "intro" });
   const [isAdultConfirmed, setIsAdultConfirmed] = useState(false);
+  const [hasAllowedAi, setHasAllowedAi] = useState(false);
   const router = useRouter();
 
   // Free the previous photo's memory when it is replaced.
@@ -46,6 +48,7 @@ export function ScanFlow({ pack }: { pack: Pack }) {
   const review = useCallback((photo: CapturedPhoto) => setStep({ kind: "review", photo, state: { kind: "confirm" } }), []);
 
   const handleUpload = async (file: File) => {
+    if (!hasAllowedAi) return;
     try {
       review(await prepareFile(file));
     } catch {
@@ -55,19 +58,19 @@ export function ScanFlow({ pack }: { pack: Pack }) {
 
   const handleUse = async () => {
     if (step.kind !== "review") return;
+    if (!hasAllowedAi || (pack.capture.requireAdult && !isAdultConfirmed)) return;
     const { photo } = step;
     setStep({ kind: "review", photo, state: { kind: "reading" } });
 
-    const form = new FormData();
-    form.append("pack", pack.id);
-    form.append("photo", photo.blob, "photo.jpg");
-    if (isAdultConfirmed) form.append("adult", "yes");
+    const form = scanForm(pack.id, photo.blob, hasAllowedAi, isAdultConfirmed);
 
     let next: ReviewState;
     try {
       const response = await fetch("/api/scan", { method: "POST", body: form });
       const body = (await response.json()) as ApiResponse<ScanResult>;
       next = body.success ? { kind: "done", result: body.data } : { kind: "error", message: body.error };
+      // A visitor's Allow covers this photo. Ask again before a different photo is scanned.
+      if (body.success) setHasAllowedAi(false);
     } catch {
       next = { kind: "error", message: "No connection. Check your internet and try again." };
     }
@@ -78,6 +81,8 @@ export function ScanFlow({ pack }: { pack: Pack }) {
     <>
       <ScanIntro
         pack={pack}
+        hasAllowedAi={hasAllowedAi}
+        onAiChange={setHasAllowedAi}
         isAdultConfirmed={isAdultConfirmed}
         onAdultChange={setIsAdultConfirmed}
         onOpenCamera={() => setStep({ kind: "camera" })}
