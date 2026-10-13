@@ -7,7 +7,6 @@ import { account, useAccount } from "@/lib/account/use-account";
 import { Avatar } from "./avatar";
 import { BuySheet } from "./buy-sheet";
 import { DeleteAccount } from "./delete-account";
-import { InvitePanel } from "./invite-panel";
 
 const button = "h-10 shrink-0 rounded-full px-4 text-[14px] font-semibold transition-[transform,opacity] active:scale-[0.97] disabled:opacity-50";
 
@@ -105,7 +104,7 @@ export function AccountPage() {
             Get more
           </button>
         </div>
-        <InvitePanel />
+        {/* Invites hidden until their reward is decided: free pictures no longer count with plans (docs/plans/subscriptions-revenuecat.md). */}
       </Row>
 
       <Row label="Session">

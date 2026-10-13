@@ -26,8 +26,19 @@ function fakeClient(initial: Session | null = null) {
   return { client: { auth } as unknown as SupabaseClient, auth, emit: (s: Session | null) => onChange?.("SIGNED_IN", s) };
 }
 
-const okCredits = (credits: number) =>
-  jest.fn(async () => new Response(JSON.stringify({ success: true, data: { credits } })));
+const PRO = {
+  tier: "pro",
+  period: "monthly",
+  swapsPerMonth: 150,
+  monthStart: "2026-10-03T12:00:00.000Z",
+  expiresAt: "2026-11-03T12:00:00.000Z",
+  willRenew: true,
+  hasBillingIssue: false,
+  store: "app_store",
+};
+
+const okCredits = (credits: number, plan: typeof PRO | null = null) =>
+  jest.fn(async () => new Response(JSON.stringify({ success: true, data: { credits, plan } })));
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
@@ -77,12 +88,50 @@ describe("createAccountStore", () => {
     expect(store.getSnapshot()).toMatchObject({ status: "signed-in", hasApple: true });
   });
 
+  test("loads the plan with the balance: that's what opens the hard paywall", async () => {
+    const { store } = makeStore({ session: { access_token: "tok", user: { id: "u1" } }, fetcher: okCredits(112, PRO) });
+    await flush();
+    await flush();
+    expect(store.getSnapshot()).toMatchObject({ credits: 112, plan: PRO, planCheck: "ready" });
+  });
+
+  test("a first check that fails says so, instead of showing the paywall to someone with a plan", async () => {
+    const fetcher = jest.fn(async () => {
+      throw new Error("offline");
+    });
+    const { store } = makeStore({ session: { access_token: "tok", user: { id: "u1" } }, fetcher });
+    await flush();
+    await flush();
+    expect(store.getSnapshot()).toMatchObject({ plan: null, planCheck: "error" });
+  });
+
+  test("a later failed check keeps the plan that was already known", async () => {
+    const fetcher = okCredits(112, PRO);
+    const { store } = makeStore({ session: { access_token: "tok", user: { id: "u1" } }, fetcher });
+    await flush();
+    await flush();
+    fetcher.mockImplementationOnce(async () => {
+      throw new Error("offline");
+    });
+    await store.refreshCredits();
+    expect(store.getSnapshot()).toMatchObject({ plan: PRO, planCheck: "ready" });
+  });
+
   test("signs in from a saved session and loads credits with the Bearer token", async () => {
     const { store, fetcher } = makeStore({ session: { access_token: "tok_123", user: { id: "u1", email: "a@b.co" } } });
     await flush();
     await flush();
 
-    expect(store.getSnapshot()).toEqual({ status: "signed-in", userId: "u1", email: "a@b.co", name: null, credits: 1, hasApple: false });
+    expect(store.getSnapshot()).toEqual({
+      status: "signed-in",
+      userId: "u1",
+      email: "a@b.co",
+      name: null,
+      credits: 1,
+      plan: null,
+      planCheck: "ready",
+      hasApple: false,
+    });
     const [url, init] = fetcher.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("https://example.test/api/credits");
     expect(new Headers(init.headers).get("Authorization")).toBe("Bearer tok_123");

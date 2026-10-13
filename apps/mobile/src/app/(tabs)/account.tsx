@@ -1,16 +1,15 @@
 import { useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Button } from "@/components/button";
-import { forgetInvite, InviteCard } from "@/components/invite-card";
+import { forgetInvite } from "@/components/invite-card";
 import { LegalLinks } from "@/components/legal-links";
-import { SwapsLeft } from "@/components/swaps-left";
+import { PlanCard } from "@/components/plan-card";
 import { getApi } from "@/lib/api";
 import { appleAuthorizationCode } from "@/lib/apple";
 import { clearPending } from "@/lib/render";
 import { account, useAccount } from "@/lib/use-account";
 import { resetRenders } from "@/lib/use-renders";
-import { colors, display, fonts, radius, space } from "@/theme";
+import { colors, fonts, headline, radius, space } from "@/theme";
 
 export default function Account() {
   const state = useAccount();
@@ -61,7 +60,7 @@ export default function Account() {
   const confirmDelete = () =>
     Alert.alert(
       "Delete your account?",
-      "This deletes your account, your saved swaps, your share links and any swaps you have left. It can't be undone.",
+      "This deletes your account, your saved swaps, your share links and any swaps you have left. It can't be undone. It doesn't cancel a subscription: cancel that first under Manage, or you'll keep being charged.",
       [
         { text: "Cancel", style: "cancel" },
         { text: "Delete", style: "destructive", onPress: () => void deleteAccount() },
@@ -73,25 +72,64 @@ export default function Account() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Account</Text>
         <View style={styles.who}>
-          {state.name ? <Text style={styles.name}>{state.name}</Text> : null}
-          <Text style={styles.email}>{state.email ?? "Signed in with Apple"}</Text>
+          <View style={styles.avatar} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <Text style={styles.initial}>{initialOf(state.name ?? state.email)}</Text>
+          </View>
+          <View style={styles.whoText}>
+            {state.name ? (
+              <Text style={styles.name} numberOfLines={1}>
+                {state.name}
+              </Text>
+            ) : null}
+            <Text style={styles.email} numberOfLines={1}>
+              {state.email ?? "Signed in with Apple"}
+            </Text>
+          </View>
         </View>
-        <SwapsLeft />
-        <InviteCard />
-        <Button label="Sign out" variant="quiet" onPress={() => void signOut()} />
-        <Button label="Delete account" variant="quiet" isBusy={isDeleting} onPress={confirmDelete} style={styles.delete} />
-        <LegalLinks />
+        <PlanCard />
+        {/* Invites hidden until their reward is decided: free swaps no longer count with plans. */}
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => void signOut()}
+          style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+        >
+          <Text style={styles.rowText}>Sign out</Text>
+        </Pressable>
+
+        <View style={styles.footer}>
+          <LegalLinks />
+          {/* Required by Apple, but rare and destructive: quiet, last, and behind a confirmation. */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ busy: isDeleting }}
+            disabled={isDeleting}
+            hitSlop={8}
+            onPress={confirmDelete}
+          >
+            {isDeleting ? <ActivityIndicator color={colors.muted} /> : <Text style={styles.delete}>Delete account</Text>}
+          </Pressable>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+/** The first letter or digit of a name or email, for the avatar. */
+const initialOf = (text: string | null | undefined) => text?.match(/[\p{L}\p{N}]/u)?.[0]?.toUpperCase() ?? "?";
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   content: { padding: space.md, gap: space.md },
-  title: { ...display, fontSize: 32, lineHeight: 35 },
-  who: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: space.md, gap: space.xs },
+  title: { ...headline(40), marginTop: space.sm, marginBottom: space.xs },
+  who: { flexDirection: "row", alignItems: "center", gap: space.md, backgroundColor: colors.surface, borderRadius: radius.lg, padding: space.md },
+  avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.surface2, alignItems: "center", justifyContent: "center" },
+  initial: { fontFamily: fonts.semibold, fontSize: 22, color: colors.fg },
+  whoText: { flex: 1, gap: 2 },
   name: { fontFamily: fonts.semibold, fontSize: 18, color: colors.fg },
   email: { fontFamily: fonts.regular, fontSize: 15, color: colors.muted },
-  delete: { borderColor: "transparent", marginTop: space.lg },
+  row: { minHeight: 52, justifyContent: "center", paddingHorizontal: space.md, borderRadius: radius.lg, backgroundColor: colors.surface },
+  rowPressed: { backgroundColor: colors.surface2 },
+  rowText: { fontFamily: fonts.medium, fontSize: 16, color: colors.fg },
+  footer: { alignItems: "center", gap: space.xs, marginTop: space.lg },
+  delete: { fontFamily: fonts.medium, fontSize: 14, color: colors.muted, padding: space.xs },
 });

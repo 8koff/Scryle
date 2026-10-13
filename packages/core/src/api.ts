@@ -1,3 +1,5 @@
+import type { PlanPeriod, PlanTierId } from "./subscriptions";
+
 /**
  * Shapes of the API's requests and answers. Shared by the web app and the iOS app, so both
  * read the server the same way. Types only: nothing here runs.
@@ -33,7 +35,27 @@ export type RenderRequestStatus =
 
 export type RenderStatus = { status: "queued" | "in_progress" | "completed" | "failed" | "nsfw" | "canceled" | string; imageUrl?: string };
 
-export type CreditsInfo = { credits: number };
+/**
+ * The account's swaps. `credits` is what's left this month (0 without a plan). `plan` is null when
+ * there's no plan giving swaps right now: the iPhone app's hard paywall shows then.
+ */
+export type CreditsInfo = { credits: number; plan: PlanInfo | null };
+
+/** The plan as the app shows it ("Pro · renews Nov 3"). Dates are ISO strings. */
+export type PlanInfo = {
+  tier: PlanTierId;
+  period: PlanPeriod;
+  swapsPerMonth: number;
+  /** When this allowance month started; the next one starts a month later (or at renewal). */
+  monthStart: string;
+  /** When the plan ends unless it renews. */
+  expiresAt: string;
+  willRenew: boolean;
+  /** Apple or Stripe couldn't take the last payment. */
+  hasBillingIssue: boolean;
+  /** Where it was bought, so "Manage" opens the right place: Apple ("app_store") or the website ("rc_billing"). */
+  store: string;
+};
 
 /** A finished purchase (Stripe on the web, Apple in the iOS app): the new balance and what was added. */
 export type CheckoutDone = { credits: number; added: number; bonus?: number };

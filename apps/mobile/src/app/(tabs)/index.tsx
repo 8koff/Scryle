@@ -7,17 +7,18 @@ import { FlatList as NativeFlatList, RefreshControl, ScrollView, StyleSheet, Tex
 import { FlatList } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CompareSlider } from "@/components/compare-slider";
-import { InviteCard } from "@/components/invite-card";
 import { PressableScale } from "@/components/pressable-scale";
 import { SwapThumb } from "@/components/swap-thumb";
-import { SwapsLeft } from "@/components/swaps-left";
+import { SwapsLeftPill } from "@/components/swaps-left";
 import { PACK_COVERS } from "@/lib/packs";
 import { account, useAccount } from "@/lib/use-account";
 import { useRenders } from "@/lib/use-renders";
-import { colors, display, fonts, radius, space } from "@/theme";
+import { colors, fonts, headline, radius, space } from "@/theme";
 
 /** A card is most of the screen wide, so the next one peeks in and says "swipe". */
 const CARD_SHARE = 0.78;
+/** Photo height over card width. Low enough that the whole first card (photo and text) fits above the tab bar. */
+const CARD_PHOTO_RATIO = 0.95;
 const RECENT_LIMIT = 8;
 
 export default function Home() {
@@ -37,8 +38,13 @@ export default function Home() {
         refreshControl={<RefreshControl refreshing={false} onRefresh={() => void refresh()} tintColor={colors.muted} />}
       >
         <View style={styles.padded}>
-          <Text style={styles.hello}>{firstName ? `Hi, ${firstName}` : "Scryle"}</Text>
-          <Text style={styles.title}>What do you want to change?</Text>
+          <View style={styles.topRow}>
+            <Text style={styles.hello} numberOfLines={1}>
+              {firstName ? `Hi, ${firstName}` : "Scryle"}
+            </Text>
+            <SwapsLeftPill />
+          </View>
+          <Text style={styles.title}>{"What do you\nwant to change?"}</Text>
         </View>
 
         <View style={styles.padded}>
@@ -58,10 +64,6 @@ export default function Home() {
           contentContainerStyle={styles.carousel}
           ItemSeparatorComponent={CardGap}
         />
-
-        <View style={styles.padded}>
-          <SwapsLeft />
-        </View>
 
         <View style={styles.section}>
           <View style={[styles.padded, styles.sectionHead]}>
@@ -93,9 +95,7 @@ export default function Home() {
           )}
         </View>
 
-        <View style={styles.padded}>
-          <InviteCard />
-        </View>
+        {/* Invites hidden until their reward is decided: free swaps no longer count with plans. */}
       </ScrollView>
     </SafeAreaView>
   );
@@ -137,11 +137,11 @@ const CategoryCard = memo(function CategoryCard({ pack, width, isFirst }: { pack
           before={cover.before}
           after={cover.after}
           hint={isFirst}
-          style={[styles.cardImage, { height: width * 1.1 }]}
+          style={[styles.cardImage, { height: width * CARD_PHOTO_RATIO }]}
           accessibilityLabel={`${pack.label} example. Left: before. Right: AI edit.`}
         />
       ) : (
-        <Image source={cover.before} style={[styles.cardImage, { height: width * 1.1 }]} contentFit="cover" />
+        <Image source={cover.before} style={[styles.cardImage, { height: width * CARD_PHOTO_RATIO }]} contentFit="cover" />
       )}
       <View style={styles.cardText}>
         <Text style={styles.cardTitle}>{pack.label}</Text>
@@ -161,8 +161,9 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   content: { paddingTop: space.md, paddingBottom: space.xl, gap: space.lg },
   padded: { paddingHorizontal: space.md },
-  hello: { fontFamily: fonts.medium, fontSize: 16, color: colors.muted },
-  title: { ...display, fontSize: 32, lineHeight: 35, marginTop: space.xs },
+  topRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.md },
+  hello: { flexShrink: 1, fontFamily: fonts.medium, fontSize: 16, color: colors.muted },
+  title: { ...headline(40), marginTop: space.sm },
   carousel: { paddingHorizontal: space.md },
   card: { borderRadius: radius.lg, backgroundColor: colors.surface, overflow: "hidden" },
   cardImage: { width: "100%", backgroundColor: colors.surface2 },

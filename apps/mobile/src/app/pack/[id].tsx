@@ -6,7 +6,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/button";
 import { CompareSlider } from "@/components/compare-slider";
 import { PACK_COVERS } from "@/lib/packs";
-import { colors, display, fonts, radius, space } from "@/theme";
+import { colors, fonts, headline, radius, space } from "@/theme";
+
+/** Clothing's rules (the server enforces them too), one short line each so they can be scanned. */
+const ADULT_RULES = ["Live camera only, no uploads", "You must be 18 or older", "No swimwear or underwear"] as const;
 
 /** One category: what it changes and how to take the photo. Switch category at the top. */
 export default function PackPage() {
@@ -17,7 +20,8 @@ export default function PackPage() {
 
   return (
     <SafeAreaView style={styles.screen} edges={["bottom"]}>
-      <Stack.Screen options={{ title: pack.label }} />
+      {/* The chips below already say which category this is. */}
+      <Stack.Screen options={{ title: "" }} />
       <ScrollView contentContainerStyle={styles.content}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.switcher}>
           {PACKS.map((p) => (
@@ -39,9 +43,19 @@ export default function PackPage() {
           ) : (
             <Image source={cover.before} style={styles.hero} contentFit="cover" />
           )}
-          <Text style={styles.title}>{pack.tagline}</Text>
+          {/* push-out: iOS moves a word down rather than leave one alone on the last line. */}
+          <Text style={styles.title} lineBreakStrategyIOS="push-out">
+            {pack.tagline}
+          </Text>
           {pack.capture.requireAdult ? (
-            <Text style={styles.rule}>Live camera only. You must be 18 or older. Swimwear and underwear aren&apos;t allowed.</Text>
+            <View style={styles.rules} accessibilityRole="summary">
+              {ADULT_RULES.map((rule) => (
+                <View key={rule} style={styles.ruleRow}>
+                  <View style={styles.ruleDot} />
+                  <Text style={styles.ruleText}>{rule}</Text>
+                </View>
+              ))}
+            </View>
           ) : null}
 
           <Text style={styles.heading}>What you can change</Text>
@@ -104,28 +118,24 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     justifyContent: "center",
   },
-  switchChipOn: { backgroundColor: colors.accent, borderColor: colors.accent },
+  // Selected, not an action: the light fill the studio's chips use, so denim stays for buttons.
+  switchChipOn: { backgroundColor: colors.fg, borderColor: colors.fg },
   switchText: { fontFamily: fonts.medium, fontSize: 15, color: colors.muted },
-  switchTextOn: { color: colors.onAccent },
+  switchTextOn: { fontFamily: fonts.semibold, color: colors.bg },
   hero: {
     width: "100%",
-    aspectRatio: 4 / 5,
+    // A little shorter than 4:5, so the title and rules show above the button on a phone.
+    aspectRatio: 9 / 10,
     borderRadius: radius.lg,
     backgroundColor: colors.surface2,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "rgba(255,255,255,0.08)",
   },
-  title: { ...display, fontSize: 28, lineHeight: 31, marginTop: space.md },
-  rule: {
-    fontFamily: fonts.medium,
-    fontSize: 15,
-    lineHeight: 21,
-    color: colors.fg,
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: space.md,
-    marginTop: space.md,
-  },
+  title: { ...headline(32), marginTop: space.lg },
+  rules: { gap: 10, marginTop: space.md, padding: space.md, borderRadius: radius.md, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.line },
+  ruleRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  ruleDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.muted },
+  ruleText: { flex: 1, fontFamily: fonts.medium, fontSize: 15, lineHeight: 20, color: colors.fg },
   heading: { fontFamily: fonts.semibold, fontSize: 18, color: colors.fg, marginTop: space.lg, marginBottom: space.sm },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
   chip: {

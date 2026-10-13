@@ -7,6 +7,7 @@ export type {
   ApiResponse,
   CheckoutDone,
   CreditsInfo,
+  PlanInfo,
   InviteInfo,
   RenderCard,
   RenderStart,

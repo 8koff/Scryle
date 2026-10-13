@@ -1,8 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { currentAllowance, type SubscriptionStore } from "./subscriptions";
 
 /**
  * The credits ledger. The real one lives in Supabase (supabase/migrations/0001_credits.sql);
  * the memory one is for tests. Every write is idempotent, so retries never double-count.
+ *
+ * Since subscriptions (0012_subscriptions.sql), swaps come only from the plan's monthly allowance:
+ * `balance` and `spend` ask the subscription store for the plan and pass this month and its
+ * allowance to the database. Renders still get a ledger row, so attachJob, refunds and jobOwner
+ * work as before.
  */
 export type CreditStore = {
   balance(userId: string): Promise<number>;
@@ -30,7 +36,11 @@ export type CreditStore = {
 export type InviteClaim = "ok" | "unknown" | "own" | "not_new" | "already";
 const CLAIMS = new Set<InviteClaim>(["ok", "unknown", "own", "not_new", "already"]);
 
-export function createSupabaseCreditStore(db: SupabaseClient): CreditStore {
+export function createSupabaseCreditStore(
+  db: SupabaseClient,
+  subscriptions: SubscriptionStore,
+  now: () => Date = () => new Date(),
+): CreditStore {
   const call = async <T>(fn: string, args: Record<string, unknown>): Promise<T> => {
     const { data, error } = await db.rpc(fn, args);
     if (error) throw new Error(`[credits] ${fn} failed: ${error.message}`);
@@ -38,10 +48,20 @@ export function createSupabaseCreditStore(db: SupabaseClient): CreditStore {
   };
 
   return {
-    balance: (userId) => call<number>("credit_balance", { p_user: userId }),
+    async balance(userId) {
+      const allowance = currentAllowance(await subscriptions.get(userId), now());
+      if (!allowance) return 0;
+      return call<number>("swap_balance", { p_user: userId, p_month_start: allowance.monthStart.toISOString(), p_granted: allowance.granted });
+    },
     grantWelcome: (userId, credits) => call<number>("grant_welcome", { p_user: userId, p_credits: credits }),
-    spend: async (userId) => {
-      const entry = await call<number | string | null>("spend_credit", { p_user: userId });
+    async spend(userId) {
+      const allowance = currentAllowance(await subscriptions.get(userId), now());
+      if (!allowance) return null;
+      const entry = await call<number | string | null>("spend_swap", {
+        p_user: userId,
+        p_month_start: allowance.monthStart.toISOString(),
+        p_granted: allowance.granted,
+      });
       return entry === null ? null : Number(entry);
     },
     attachJob: (entry, jobId) => call<void>("attach_job", { p_entry: entry, p_job: jobId }),
@@ -79,30 +99,65 @@ type Row = {
   refundOf?: number;
   reversalOf?: number;
   session?: string;
+  /** Allowance mode: the month a render was paid from. */
+  month?: string;
 };
 
-/** Same rules as the SQL functions, in memory. `seed` grants starting credits: { userId: credits }. */
-export function createMemoryCreditStore(seed: Record<string, number> = {}): CreditStore & { rows: Row[] } {
+/**
+ * Same rules as the SQL functions, in memory. Two modes:
+ * - without `plans`: the old ledger, where `seed` grants starting credits ({ userId: credits });
+ * - with `plans`: the monthly allowance of 0012_subscriptions.sql (seed is ignored for spending).
+ */
+export function createMemoryCreditStore(
+  seed: Record<string, number> = {},
+  plans?: { subscriptions: SubscriptionStore; now?: () => Date },
+): CreditStore & { rows: Row[]; allowance: Map<string, { granted: number; used: number }> } {
+  const allowance = new Map<string, { granted: number; used: number }>();
+  const monthOf = async (userId: string) => {
+    const current = plans && currentAllowance(await plans.subscriptions.get(userId), (plans.now ?? (() => new Date()))());
+    return current ? { key: `${userId}|${current.monthStart.toISOString()}`, granted: current.granted } : null;
+  };
   const codes = new Map<string, string>();
   const referrals = new Map<string, { inviter: string; rewarded: boolean }>();
   const rows: Row[] = Object.entries(seed).map(([userId, delta], i) => ({ id: i + 1, userId, delta, reason: "grant" }));
   let nextId = rows.length + 1;
   const add = (row: Omit<Row, "id">) => rows.push({ ...row, id: nextId++ });
-  const balance = async (userId: string) => rows.filter((r) => r.userId === userId).reduce((sum, r) => sum + r.delta, 0);
+  const ledgerBalance = async (userId: string) => rows.filter((r) => r.userId === userId).reduce((sum, r) => sum + r.delta, 0);
+  const balance = async (userId: string) => {
+    if (!plans) return ledgerBalance(userId);
+    const month = await monthOf(userId);
+    if (!month) return 0;
+    const row = allowance.get(month.key);
+    return Math.max(0, Math.max(row?.granted ?? 0, month.granted) - (row?.used ?? 0));
+  };
   const refund = (render: Row | undefined) => {
     if (!render || rows.some((r) => r.refundOf === render.id)) return;
     add({ userId: render.userId, delta: 1, reason: "refund", refundOf: render.id });
+    const row = render.month ? allowance.get(render.month) : undefined;
+    if (row) row.used = Math.max(0, row.used - 1);
   };
 
   return {
     rows,
+    allowance,
     balance,
     async grantWelcome(userId, credits) {
       if (!rows.some((r) => r.userId === userId && r.reason === "welcome")) add({ userId, delta: credits, reason: "welcome" });
       return balance(userId);
     },
     async spend(userId) {
-      if ((await balance(userId)) < 1) return null;
+      if (plans) {
+        const month = await monthOf(userId);
+        if (!month) return null;
+        const row = allowance.get(month.key) ?? { granted: 0, used: 0 };
+        row.granted = Math.max(row.granted, month.granted);
+        allowance.set(month.key, row);
+        if (row.used >= row.granted) return null;
+        row.used++;
+        add({ userId, delta: -1, reason: "render", month: month.key });
+        return nextId - 1;
+      }
+      if ((await ledgerBalance(userId)) < 1) return null;
       add({ userId, delta: -1, reason: "render" });
       return nextId - 1;
     },

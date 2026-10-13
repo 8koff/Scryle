@@ -3,9 +3,10 @@ import { useState } from "react";
 import { KeyboardAvoidingView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/button";
+import { SeamMark } from "@/components/seam-mark";
 import { MAX_CODE_LENGTH } from "@/lib/account";
 import { account, useAccount } from "@/lib/use-account";
-import { colors, display, fonts, radius, space } from "@/theme";
+import { colors, display, fonts, headline, radius, space } from "@/theme";
 
 /**
  * Sign in with Apple, or with a code sent by email. New emails get a new account.
@@ -55,8 +56,12 @@ export default function SignIn() {
     <SafeAreaView style={styles.screen}>
       <KeyboardAvoidingView behavior="padding" style={styles.fill}>
         <View style={styles.fill}>
-          <Text style={styles.title}>Scryle</Text>
-          <Text style={styles.body}>See real products on your car, your room, or you, before you buy.</Text>
+          <View style={styles.brand} accessibilityRole="header" accessibilityLabel="Scryle">
+            <SeamMark size={28} />
+            <Text style={styles.wordmark}>Scryle</Text>
+          </View>
+          <Text style={styles.headline}>See it before you buy it.</Text>
+          <Text style={styles.tagline}>{"Tap a part.\nSee the swap on your own photo."}</Text>
         </View>
 
         {step === "email" ? (
@@ -149,6 +154,10 @@ const styles = StyleSheet.create({
   fill: { flex: 1 },
   title: { ...display, fontSize: 44, marginTop: space.xl },
   body: { fontFamily: fonts.regular, fontSize: 16, lineHeight: 23, color: colors.muted, marginTop: space.sm },
+  brand: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: space.md },
+  wordmark: { ...display, fontSize: 24, letterSpacing: -0.5 },
+  headline: { ...headline(52), marginTop: 56 },
+  tagline: { fontFamily: fonts.regular, fontSize: 18, lineHeight: 25, color: colors.muted, marginTop: space.md },
   form: { gap: space.md, paddingBottom: space.md },
   apple: { height: 52 },
   off: { opacity: 0.5 },

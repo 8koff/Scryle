@@ -413,8 +413,8 @@ export function Studio({ id }: { id: string }) {
 
 /** The small line under the render button: what this render costs you. */
 function costLine(me: Account): string {
-  if (me.status === "signed-out") return "Your first picture is free.";
+  if (me.status === "signed-out") return "Sign in and pick a plan to make pictures.";
   if (me.status !== "signed-in" || me.credits === null) return " ";
-  if (me.credits === 0) return "You're out of pictures.";
-  return `Uses 1 of your ${me.credits} picture${me.credits === 1 ? "" : "s"}.`;
+  if (me.credits === 0) return me.plan ? "You've used this month's pictures." : "Pick a plan to make pictures.";
+  return `Uses 1 of your ${me.credits} picture${me.credits === 1 ? "" : "s"} left this month.`;
 }

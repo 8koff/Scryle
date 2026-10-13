@@ -7,7 +7,7 @@ import { SwapThumb } from "@/components/swap-thumb";
 import { useRenders } from "@/lib/use-renders";
 import { trackedRenders } from "@/lib/render";
 import { useTrackedRenders } from "@/lib/tracked-renders";
-import { colors, display, fonts, radius, space } from "@/theme";
+import { colors, fonts, headline, radius, space } from "@/theme";
 
 const COLUMNS = 2;
 
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   content: { padding: space.md, gap: space.lg, flexGrow: 1 },
   row: { gap: space.md },
-  title: { ...display, fontSize: 32, lineHeight: 35 },
+  title: { ...headline(40), marginTop: space.sm },
   header: { gap: space.md },
   request: { backgroundColor: colors.surface, borderRadius: radius.md, padding: space.md, gap: space.xs },
   requestTitle: { fontFamily: fonts.semibold, fontSize: 16, color: colors.fg },

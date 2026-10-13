@@ -131,9 +131,9 @@ async function executeRender(input: z.infer<typeof RequestSchema>, deps: RenderD
   }
 
   // Checked only after the request is known to be good, so bad requests never cost a credit.
-  if (!deps.userId) return fail(401, "Sign in to get your free picture.", "sign_in");
+  if (!deps.userId) return fail(401, "Sign in to make pictures.", "sign_in");
   const entry = await deps.credits.spend(deps.userId);
-  if (entry === null) return fail(402, "You're out of pictures. Pick a pack to keep going.", "no_credits");
+  if (entry === null) return fail(402, "You're out of pictures for this month. Pick a plan to keep going.", "no_credits");
 
   let reserved = 0;
   let submitting = false;

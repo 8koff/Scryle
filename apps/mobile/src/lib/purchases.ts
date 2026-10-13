@@ -1,144 +1,141 @@
-import { appleProductId, CREDIT_PACKS, creditPackForAppleProduct, type CheckoutDone, type CreditPack } from "@retrofit/core";
+import { offersFromPackages, previewOffers, type PlanInfo, type PlanOffer } from "@retrofit/core";
 import Constants, { ExecutionEnvironment } from "expo-constants";
-import { postJson } from "./api";
+import * as WebBrowser from "expo-web-browser";
+import { Platform } from "react-native";
+import type { PurchasesPackage } from "react-native-purchases";
+import { API_URL, REVENUECAT_IOS_KEY } from "./config";
+
 import { account } from "./use-account";
 
 /**
- * Buying swaps with Apple in-app purchase. The order matters for not losing a purchase:
- * Apple charges → we send Apple's signed transaction to our server → the server adds the
- * swaps → only then do we finish the transaction with Apple. If the app closes in between,
- * iOS gives the transaction back on the next start and it is sent again (the server counts
- * each transaction once).
+ * Subscriptions through RevenueCat (docs/plans/subscriptions-revenuecat.md). The phone only buys:
+ * RevenueCat tells our server, the server decides the plan and its swaps, and the app reads that
+ * back from /api/credits. Nothing here grants swaps or unlocks screens by itself.
  */
 
-type IapPurchase = { productId: string; purchaseToken?: string | null };
-type Iap = typeof import("expo-iap");
+type Sdk = typeof import("react-native-purchases").default;
+export type Offer = PlanOffer<PurchasesPackage>;
 
-export type PackOffer = { pack: CreditPack; productId: string; displayPrice: string };
-export type DeliverResult = { status: "added"; added: number; bonus?: number } | { status: "kept"; message: string };
+/** Buying needs a real build (not Expo Go), the iOS key, and iOS. */
+export const canBuyHere = () =>
+  Platform.OS === "ios" && Boolean(REVENUECAT_IOS_KEY) && Constants.executionEnvironment !== ExecutionEnvironment.StoreClient;
 
-/** Expo Go has no in-app purchase module; buying only works in a real build (TestFlight, App Store). */
-export const canBuyHere = () => Constants.executionEnvironment !== ExecutionEnvironment.StoreClient;
-
-let iap: Promise<Iap | null> | null = null;
-/** Loaded on first use, so the app still opens in Expo Go. */
-function loadIap(): Promise<Iap | null> {
-  iap ??= canBuyHere() ? import("expo-iap").catch(() => null) : Promise.resolve(null);
-  return iap;
+let sdk: Promise<Sdk | null> | null = null;
+/** Loaded on first use, so the app still opens in Expo Go and without a key. */
+function loadSdk(): Promise<Sdk | null> {
+  sdk ??= canBuyHere() ? import("react-native-purchases").then((m) => m.default).catch(() => null) : Promise.resolve(null);
+  return sdk;
 }
 
-type Listener = (result: DeliverResult) => void;
-const listeners = new Set<Listener>();
-/** The buy screen listens, to say "25 swaps added". */
-export function onDelivered(listener: Listener) {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
-}
-
-/** Purchases being sent right now, so a replayed transaction isn't sent twice at once. */
-const sending = new Set<string>();
+let identifiedAs: string | null = null;
 
 /**
- * Sends one purchase to the server and finishes it with Apple only when the swaps are in.
- * Any failure keeps it unfinished, so it is tried again later. Exported for tests.
+ * Tells RevenueCat who is signed in. The app user id is our account id, which is how the server
+ * matches a purchase to an account and how a plan bought here also works on the website.
  */
-export async function deliverPurchase(
-  purchase: IapPurchase,
-  finish: () => Promise<unknown>,
-  send: (signedTransaction: string) => ReturnType<typeof postJson<CheckoutDone>> = (signedTransaction) =>
-    postJson<CheckoutDone>("/api/apple/purchase", { signedTransaction }),
-): Promise<DeliverResult | null> {
-  const token = purchase.purchaseToken;
-  if (!token || !creditPackForAppleProduct(purchase.productId) || sending.has(token)) return null;
-  sending.add(token);
+export async function identify(userId: string | null): Promise<void> {
+  const Purchases = await loadSdk();
+  if (!Purchases || userId === identifiedAs) return;
   try {
-    const result = await send(token);
-    if (result.status === "error") return { status: "kept", message: result.message };
-    account.setCredits(result.data.credits);
-    await finish();
-    return { status: "added", added: result.data.added, ...(result.data.bonus ? { bonus: result.data.bonus } : {}) };
-  } finally {
-    sending.delete(token);
-  }
-}
-
-type IapEventPurchase = Parameters<Parameters<Iap["purchaseUpdatedListener"]>[0]>[0];
-let connected: Promise<boolean> | null = null;
-let isListening = false;
-
-async function handle(lib: Iap, purchase: IapEventPurchase) {
-  let result: DeliverResult | null;
-  try {
-    result = await deliverPurchase(purchase, () => lib.finishTransaction({ purchase, isConsumable: true }));
-  } catch {
-    // Network or StoreKit error: the purchase stays unfinished and is sent again later.
-    result = { status: "kept", message: "the connection dropped" };
-  }
-  if (result) listeners.forEach((l) => l(result));
-}
-
-/** Connects to the App Store once and listens for purchases for as long as the app runs. */
-function connect(lib: Iap): Promise<boolean> {
-  // The listener goes on first (once), so a transaction StoreKit replays at start-up isn't missed.
-  if (!isListening) {
-    isListening = true;
-    lib.purchaseUpdatedListener((purchase) => void handle(lib, purchase));
-  }
-  connected ??= lib
-    .initConnection()
-    .then(() => true)
-    .catch(() => {
-      connected = null; // try again next time
-      return false;
-    });
-  return connected;
-}
-
-/**
- * On every sign-in and app start: send any purchase Apple still holds as unfinished (the app
- * closed mid-purchase, or the server couldn't check it last time).
- */
-export async function startPurchases(): Promise<void> {
-  const lib = await loadIap();
-  if (!lib || !(await connect(lib))) return;
-  // Unfinished transactions (StoreKit's queue) and anything the store still lists. `sending`
-  // stops the same one being sent twice; the server counts each once anyway.
-  const lists = await Promise.allSettled([lib.getPendingTransactionsIOS(), lib.getAvailablePurchases()]);
-  for (const list of lists) {
-    if (list.status === "fulfilled") for (const purchase of list.value) void handle(lib, purchase);
-  }
-}
-
-/** The packs with Apple's price for this person's country. Empty when buying isn't possible here. */
-export async function loadOffers(): Promise<PackOffer[]> {
-  const lib = await loadIap();
-  if (!lib) return [];
-  await startPurchases();
-  const products = await lib.fetchProducts({ skus: CREDIT_PACKS.map(appleProductId), type: "in-app" });
-  const list = Array.isArray(products) ? products : [];
-  return CREDIT_PACKS.flatMap((pack) => {
-    const product = list.find((p) => p.id === appleProductId(pack));
-    return product ? [{ pack, productId: product.id, displayPrice: product.displayPrice }] : [];
-  });
-}
-
-export type BuyError = { kind: "cancelled" } | { kind: "error"; message: string };
-
-/**
- * Opens Apple's payment sheet. The swaps arrive through the listener above. `userId` goes into
- * the purchase (appAccountToken), so the server only adds it to this account.
- */
-export async function buy(offer: PackOffer, userId: string): Promise<BuyError | null> {
-  const lib = await loadIap();
-  if (!lib) return { kind: "error", message: "Buying works in the App Store version of Scryle." };
-  try {
-    await lib.requestPurchase({ request: { apple: { sku: offer.productId, appAccountToken: userId } }, type: "in-app" });
-    return null;
+    if (!(await Purchases.isConfigured())) {
+      if (!userId) return;
+      Purchases.configure({ apiKey: REVENUECAT_IOS_KEY!, appUserID: userId });
+    } else if (userId) {
+      await Purchases.logIn(userId);
+    } else {
+      await Purchases.logOut();
+    }
+    identifiedAs = userId;
   } catch (error) {
-    const code = (error as { code?: string } | null)?.code;
-    if (code === lib.ErrorCode.UserCancelled) return { kind: "cancelled" };
-    return { kind: "error", message: "The purchase didn't go through. You weren't charged." };
+    // Logging out an anonymous user throws; anything else is retried on the next sign-in.
+    console.warn("[purchases] couldn't switch user", error);
   }
+}
+
+export type Offers = { status: "ready"; offers: Offer[] } | { status: "preview"; offers: PlanOffer[]; message: string } | { status: "unavailable"; message: string };
+
+const STORE_DOWN = "Couldn't reach the App Store. Check your connection and try again.";
+
+/** The plans in RevenueCat's current offering, or previews in a development build without a key. */
+export async function loadOffers(): Promise<Offers> {
+  const Purchases = await loadSdk();
+  if (!Purchases) {
+    return __DEV__
+      ? { status: "preview", offers: previewOffers(), message: "This development build has no RevenueCat key." }
+      : { status: "unavailable", message: "Subscriptions work in the TestFlight or App Store version of Scryle." };
+  }
+  try {
+    const offering = (await Purchases.getOfferings()).current;
+    const offers = offersFromPackages(offering?.availablePackages ?? []);
+    return offers.length ? { status: "ready", offers } : { status: "unavailable", message: "The plans aren't available right now. Please try again later." };
+  } catch {
+    return { status: "unavailable", message: STORE_DOWN };
+  }
+}
+
+export type BuyResult = { kind: "active" } | { kind: "pending" } | { kind: "cancelled" } | { kind: "error"; message: string };
+
+/** How long to wait for RevenueCat → our server after Apple says yes. Usually a few seconds. */
+const CONFIRM_MS = 30_000;
+const CONFIRM_EVERY_MS = 2_000;
+
+/** Asks our server until it reports a plan. The plan only counts once the server has it. */
+async function waitForPlan(): Promise<BuyResult> {
+  const deadline = Date.now() + CONFIRM_MS;
+  while (Date.now() < deadline) {
+    await account.refreshCredits();
+    const me = account.getSnapshot();
+    if (me.status === "signed-in" && me.plan) return { kind: "active" };
+    await new Promise((resolve) => setTimeout(resolve, CONFIRM_EVERY_MS));
+  }
+  return { kind: "pending" };
+}
+
+const isCancel = (Purchases: Sdk, error: unknown) => {
+  const e = error as { userCancelled?: boolean | null; code?: string } | null;
+  return Boolean(e?.userCancelled) || e?.code === Purchases.PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR;
+};
+
+/** Subscribes (or changes plan). Apple shows its own sheet; then we wait for our server. */
+export async function buyPlan(offer: PlanOffer): Promise<BuyResult> {
+  if (!offer.pkg) return { kind: "error", message: "Preview only: this development build can't subscribe, so nothing was bought." };
+  const Purchases = await loadSdk();
+  if (!Purchases) return { kind: "error", message: STORE_DOWN };
+  try {
+    await Purchases.purchasePackage(offer.pkg as PurchasesPackage);
+  } catch (error) {
+    if (isCancel(Purchases, error)) return { kind: "cancelled" };
+    return { kind: "error", message: (error as { message?: string })?.message || "The purchase didn't go through. Please try again." };
+  }
+  return waitForPlan();
+}
+
+/** Restore purchases (Apple requires this button): re-links an existing plan to this account. */
+export async function restorePlan(): Promise<BuyResult> {
+  const Purchases = await loadSdk();
+  if (!Purchases) return { kind: "error", message: "Restore works in the TestFlight or App Store version of Scryle." };
+  try {
+    const info = await Purchases.restorePurchases();
+    if (!Object.keys(info.entitlements.active).length) return { kind: "error", message: "No active plan was found for this Apple ID." };
+  } catch {
+    return { kind: "error", message: STORE_DOWN };
+  }
+  return waitForPlan();
+}
+
+/**
+ * Where to cancel or change a plan: Apple's subscription page for plans bought in the app, the
+ * website's account page for plans bought there (Apple can't manage those).
+ */
+export async function manageSubscription(plan: PlanInfo): Promise<void> {
+  const Purchases = plan.store === "app_store" ? await loadSdk() : null;
+  if (Purchases) {
+    try {
+      return await Purchases.showManageSubscriptions();
+    } catch {
+      // Falls through to Apple's page in the browser.
+    }
+  }
+  const url = plan.store === "app_store" ? "https://apps.apple.com/account/subscriptions" : `${API_URL}/app/account`;
+  await WebBrowser.openBrowserAsync(url);
 }

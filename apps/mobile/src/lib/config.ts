@@ -11,3 +11,6 @@ export const API_URL = trimmed(process.env.EXPO_PUBLIC_API_URL) ?? "https://scry
 export const SUPABASE_URL = trimmed(process.env.EXPO_PUBLIC_SUPABASE_URL)?.replace(/\/rest\/v1$/, "");
 
 export const SUPABASE_KEY = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() || undefined;
+
+/** RevenueCat's public iOS SDK key (starts with appl_). Public by design; without it the plans show as a preview. */
+export const REVENUECAT_IOS_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY?.trim() || undefined;

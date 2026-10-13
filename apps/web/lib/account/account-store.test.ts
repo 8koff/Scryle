@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { describe, expect, it, vi } from "vitest";
 import { accountName, createAccountStore, isOwnPath, takeReturnPath } from "./account-store";
 
-type Session = { access_token: string; user: { email?: string; user_metadata?: Record<string, unknown> } };
+type Session = { access_token: string; user: { id?: string; email?: string; user_metadata?: Record<string, unknown> } };
 
 function fakeClient(initial: Session | null = null) {
   let onChange: (event: string, s: Session | null) => void = () => {};
@@ -60,13 +60,13 @@ describe("account store", () => {
   });
 
   it("loads a saved session and its credits, sending the token", async () => {
-    const { client } = fakeClient({ access_token: "tok-1", user: { email: "a@b.co" } });
+    const { client } = fakeClient({ access_token: "tok-1", user: { id: "u1", email: "a@b.co" } });
     const fetcher = creditsFetch(1);
     const store = createAccountStore(() => client, fetcher);
     store.subscribe(() => {});
     await flush();
     await flush();
-    expect(store.getSnapshot()).toEqual({ status: "signed-in", email: "a@b.co", name: null, avatarUrl: null, credits: 1 });
+    expect(store.getSnapshot()).toEqual({ status: "signed-in", userId: "u1", email: "a@b.co", name: null, avatarUrl: null, credits: 1, plan: null });
     const [, init] = fetcher.mock.calls[0] as unknown as [string, RequestInit];
     expect((init.headers as Record<string, string>).Authorization).toBe("Bearer tok-1");
   });
@@ -84,16 +84,16 @@ describe("account store", () => {
     expect(takeReturnPath(storage)).toBeNull();
   });
 
-  it("signs this tab in when the link is opened, and loads the free render", async () => {
+  it("signs this tab in when the link is opened, and loads the balance", async () => {
     const { client, emit } = fakeClient(null);
     const store = createAccountStore(() => client, creditsFetch(1));
     store.subscribe(() => {});
     await flush();
     expect(store.getSnapshot().status).toBe("signed-out");
-    emit({ access_token: "tok-2", user: { email: "a@b.co" } });
+    emit({ access_token: "tok-2", user: { id: "u1", email: "a@b.co" } });
     await flush();
     await flush();
-    expect(store.getSnapshot()).toEqual({ status: "signed-in", email: "a@b.co", name: null, avatarUrl: null, credits: 1 });
+    expect(store.getSnapshot()).toEqual({ status: "signed-in", userId: "u1", email: "a@b.co", name: null, avatarUrl: null, credits: 1, plan: null });
   });
 
   it("saves the name typed at sign-up with the new account", async () => {

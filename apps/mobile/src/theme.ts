@@ -30,3 +30,10 @@ export const radius = { sm: 8, md: 14, lg: 20 } as const;
 
 /** Headlines: the web's `.display` (tight tracking and leading). */
 export const display = { fontFamily: fonts.semibold, letterSpacing: -0.6, color: colors.fg } as const;
+
+/**
+ * Big titles: the web hero's tight tracking (-0.028em) and leading, so a two-line title reads as
+ * one shape. Break long titles by hand ("\n") rather than letting a lone word wrap.
+ */
+export const headline = (size: number) =>
+  ({ ...display, fontSize: size, lineHeight: size, letterSpacing: -0.028 * size }) as const;

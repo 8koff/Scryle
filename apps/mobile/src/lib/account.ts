@@ -1,4 +1,4 @@
-import type { ApiResponse, CreditsInfo } from "@retrofit/core";
+import type { ApiResponse, CreditsInfo, PlanInfo } from "@retrofit/core";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type Account =
@@ -12,10 +12,17 @@ export type Account =
       userId: string;
       email: string | undefined;
       name: string | null;
+      /** Swaps left this month (0 without a plan); null until loaded. */
       credits: number | null;
+      /** The plan giving swaps, or null without one. Decides the hard paywall. */
+      plan: PlanInfo | null;
+      /** "loading" until the server has answered once; "error" when it couldn't be reached. */
+      planCheck: PlanCheck;
       /** Signed in with Apple at least once. Deleting the account must then disconnect Apple. */
       hasApple: boolean;
     };
+
+export type PlanCheck = "loading" | "ready" | "error";
 
 type Metadata = Record<string, unknown> | undefined;
 type SessionLike = { access_token: string; user: { id: string; email?: string; user_metadata?: Metadata; app_metadata?: Metadata } };
@@ -51,7 +58,15 @@ export function usesApple(meta: Metadata): boolean {
 export function isSameAccount(a: Account, b: Account): boolean {
   if (a.status !== b.status) return false;
   if (a.status !== "signed-in" || b.status !== "signed-in") return true;
-  return a.userId === b.userId && a.email === b.email && a.name === b.name && a.credits === b.credits && a.hasApple === b.hasApple;
+  return (
+    a.userId === b.userId &&
+    a.email === b.email &&
+    a.name === b.name &&
+    a.credits === b.credits &&
+    a.planCheck === b.planCheck &&
+    JSON.stringify(a.plan) === JSON.stringify(b.plan) &&
+    a.hasApple === b.hasApple
+  );
 }
 
 /**
@@ -91,6 +106,11 @@ export function createAccountStore({
     if (state.status === "signed-in") set({ ...state, credits });
   };
 
+  /** A failed check keeps whatever was known; it only marks a first check as failed. */
+  const markCheckFailed = () => {
+    if (state.status === "signed-in" && state.planCheck !== "ready") set({ ...state, planCheck: "error" });
+  };
+
   const refreshCredits = async (): Promise<number | null> => {
     const asked = token;
     if (!asked) return null;
@@ -99,12 +119,17 @@ export function createAccountStore({
     try {
       const response = await authFetch("/api/credits", { signal: abort.signal });
       const body = (await response.json()) as ApiResponse<CreditsInfo>;
-      const credits = body.success ? body.data.credits : null;
       // Someone else signed in while this was loading: that balance isn't theirs.
       if (token !== asked) return null;
-      setCredits(credits);
+      if (!body.success) {
+        markCheckFailed();
+        return null;
+      }
+      const { credits, plan } = body.data;
+      if (state.status === "signed-in") set({ ...state, credits, plan: plan ?? null, planCheck: "ready" });
       return credits;
     } catch {
+      if (token === asked) markCheckFailed();
       return null;
     } finally {
       clearTimeout(timer);
@@ -115,16 +140,18 @@ export function createAccountStore({
     const wasSignedIn = Boolean(token);
     token = session?.access_token ?? null;
     if (!session) return set({ status: "signed-out" });
-    const credits = state.status === "signed-in" ? state.credits : null;
+    // Same person (a token refresh): keep what's known about their plan.
+    const known = state.status === "signed-in" && state.userId === session.user.id ? state : null;
     set({
       status: "signed-in",
       userId: session.user.id,
       email: session.user.email,
       name: accountName(session.user.user_metadata),
-      credits,
+      credits: known?.credits ?? null,
+      plan: known?.plan ?? null,
+      planCheck: known?.planCheck ?? "loading",
       hasApple: usesApple(session.user.app_metadata),
     });
-    // The first /api/credits call also gives a new account its free swap.
     if (!wasSignedIn) void refreshCredits();
   };
 

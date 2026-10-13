@@ -49,8 +49,7 @@
           "resizeMode": "contain",
           "backgroundColor": "#121110"
         }
-      ],
-      "expo-iap"
+      ]
     ],
     "extra": {
       "router": {},

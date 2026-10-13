@@ -1,13 +1,13 @@
 import { fitsPart, getPack, MAX_SWAPS_PER_PICTURE, STUDIO_OPTIONS, studioParts } from "@retrofit/core";
 import { Image } from "expo-image";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/button";
 import { CompareSlider } from "@/components/compare-slider";
 import { OptionCard, OptionCardSkeleton } from "@/components/option-card";
+import { ShopLook } from "@/components/shop-look";
 import { getBuild, type Build } from "@/lib/builds";
 import { API_URL } from "@/lib/config";
 import { startRender, trackedRenders, waitForRender } from "@/lib/render";
@@ -356,7 +356,10 @@ function DonePanel({ build, job, picks }: { build: Build; job: ShareJob; picks: 
     const result = await makeShareLink(build, job, picks.map((p) => p.input));
     setBusy(null);
     if ("error" in result) Alert.alert("Couldn't make the link", result.error);
-    else setLinkUrl(result.url);
+    else {
+      setLinkUrl(result.url);
+      void Share.share({ url: result.url, message: SHARE_TEXT }).catch(() => {});
+    }
   };
 
   return (
@@ -366,29 +369,7 @@ function DonePanel({ build, job, picks }: { build: Build; job: ShareJob; picks: 
       <Text style={styles.small}>One image with both photos. Only people you send it to see it.</Text>
       <Button label={linkUrl ? "Share the link again" : "Make a link"} variant="quiet" isBusy={busy === "link"} disabled={busy !== null} onPress={() => void onLink()} />
       <Text style={styles.small}>A page anyone with the link can see, with a &ldquo;Try this on me&rdquo; button. It stays up until you delete it on the website.</Text>
-      {products.length ? (
-        <>
-          <Text style={styles.heading}>Shop this look</Text>
-          {products.map((p) => (
-            <Pressable
-              key={p.id}
-              accessibilityRole="link"
-              accessibilityLabel={`View ${p.title} at ${p.store}`}
-              onPress={() => void WebBrowser.openBrowserAsync(`${API_URL}/go/${p.id}`)}
-              style={({ pressed }) => [styles.shopRow, pressed && styles.pressed]}
-            >
-              <Image source={{ uri: p.image }} style={styles.shopImage} contentFit="contain" />
-              <View style={styles.fill}>
-                <Text style={styles.shopTitle} numberOfLines={2}>
-                  {p.title}
-                </Text>
-                <Text style={styles.small}>{p.store}</Text>
-              </View>
-              <Text style={styles.link}>View</Text>
-            </Pressable>
-          ))}
-        </>
-      ) : null}
+      <ShopLook products={products} />
     </View>
   );
 }
@@ -425,8 +406,4 @@ const styles = StyleSheet.create({
   footer: { paddingHorizontal: space.md, paddingTop: space.sm, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, backgroundColor: colors.bg },
   cost: { fontFamily: fonts.regular, fontSize: 13, color: colors.muted, textAlign: "center", marginTop: space.xs },
   done: { gap: space.sm },
-  shopRow: { flexDirection: "row", alignItems: "center", gap: space.md, padding: space.sm, borderRadius: radius.md, backgroundColor: colors.surface },
-  pressed: { opacity: 0.75 },
-  shopImage: { width: 56, height: 56, borderRadius: radius.sm, backgroundColor: "#ffffff" },
-  shopTitle: { fontFamily: fonts.medium, fontSize: 14, lineHeight: 19, color: colors.fg },
 });

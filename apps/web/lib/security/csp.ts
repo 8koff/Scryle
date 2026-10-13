@@ -4,6 +4,13 @@ import { supabaseProjectUrl } from "@/lib/account/supabase-url";
 const HIGGSFIELD_HOSTS = ["https://*.cloudfront.net", "https://*.higgsfield.ai"];
 /** The on-device detector downloads its model from here. */
 const MODEL_HOST = "https://storage.googleapis.com";
+/**
+ * Subscriptions (RevenueCat Web Billing, which takes the card with Stripe). Hosts read from the
+ * @revenuecat/purchases-js bundle and Stripe's CSP guide. Stripe.js itself is loaded by the SDK,
+ * which 'strict-dynamic' already allows; its card fields run in Stripe's frames.
+ */
+const PAYMENT_CONNECT = ["https://api.revenuecat.com", "https://sdk.revenuecat-static.com", "https://api.stripe.com"];
+const PAYMENT_FRAMES = ["https://js.stripe.com", "https://*.js.stripe.com", "https://hooks.stripe.com"];
 
 /** A fresh, unguessable value for each page load. */
 export function createNonce(): string {
@@ -34,8 +41,9 @@ export function contentSecurityPolicy({
     // Any https image: product photos come from many stores, and an image can't run code.
     "img-src": ["'self'", "blob:", "data:", "https:"],
     "media-src": ["'self'", "blob:"],
-    "font-src": ["'self'"],
-    "connect-src": ["'self'", ...supabaseHosts, ...HIGGSFIELD_HOSTS, MODEL_HOST, ...(isDev ? ["ws:"] : [])],
+    "font-src": ["'self'", "https://sdk.revenuecat-static.com"],
+    "connect-src": ["'self'", ...supabaseHosts, ...HIGGSFIELD_HOSTS, MODEL_HOST, ...PAYMENT_CONNECT, ...(isDev ? ["ws:"] : [])],
+    "frame-src": PAYMENT_FRAMES,
     "worker-src": ["'self'", "blob:"],
     "object-src": ["'none'"],
     "base-uri": ["'self'"],
@@ -53,5 +61,6 @@ export const SECURITY_HEADERS: Record<string, string> = {
   "Strict-Transport-Security": "max-age=63072000",
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "strict-origin-when-cross-origin",
-  "Permissions-Policy": "camera=(self), microphone=(), geolocation=(), payment=()",
+  // payment: Stripe's card frame may offer Apple Pay or Google Pay inside the subscription form.
+  "Permissions-Policy": 'camera=(self), microphone=(), geolocation=(), payment=(self "https://js.stripe.com")',
 };

@@ -31,7 +31,7 @@ export const SwapThumb = memo(function SwapThumb({ render, width }: Props) {
         />
         <Text style={styles.tag}>After (AI edit)</Text>
       </View>
-      <Text style={styles.label} numberOfLines={1}>
+      <Text style={styles.label} numberOfLines={2}>
         {label}
       </Text>
       <Text style={styles.meta}>{packLabel}</Text>
@@ -61,6 +61,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     overflow: "hidden",
   },
-  label: { fontFamily: fonts.medium, fontSize: 14, color: colors.fg, marginTop: space.sm },
+  label: { fontFamily: fonts.medium, fontSize: 14, lineHeight: 18, color: colors.fg, marginTop: space.sm },
   meta: { fontFamily: fonts.regular, fontSize: 13, color: colors.muted },
 });

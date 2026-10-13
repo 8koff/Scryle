@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Instrument_Sans } from "next/font/google";
 import { connection } from "next/server";
 import { BRAND } from "@retrofit/core";
-import { CheckoutReturn } from "@/components/account/checkout-return";
 import { InviteCapture } from "@/components/account/invite-capture";
 import { SignInReturn } from "@/components/account/sign-in-return";
 import "./globals.css";
@@ -41,7 +40,6 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         {children}
         <SignInReturn />
-        <CheckoutReturn />
         <InviteCapture />
       </body>
     </html>

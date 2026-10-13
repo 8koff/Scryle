@@ -13,7 +13,7 @@ import { ActivityIndicator, AppState, StyleSheet, Text, View } from "react-nativ
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Button } from "@/components/button";
 import { forgetInvite } from "@/components/invite-card";
-import { startPurchases } from "@/lib/purchases";
+import { identify } from "@/lib/purchases";
 import { resumePendingRenders, trackedRenders } from "@/lib/render";
 import { account, useSessionRefresh } from "@/lib/use-account";
 import { resetRenders } from "@/lib/use-renders";
@@ -37,6 +37,15 @@ const SPLASH_MAX_MS = 2500;
 /** The root only needs to know signed in or not; screens read credits and names themselves. */
 const useAccountStatus = () => useSyncExternalStore(account.subscribe, () => account.getSnapshot().status);
 
+/** "plan" or "none" once the server has answered; "loading" or "error" before that. Decides the hard paywall. */
+const usePlanGate = () =>
+  useSyncExternalStore(account.subscribe, () => {
+    const me = account.getSnapshot();
+    if (me.status !== "signed-in") return "none";
+    if (me.plan) return "plan";
+    return me.planCheck === "ready" ? "none" : me.planCheck;
+  });
+
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     InstrumentSans_400Regular,
@@ -46,6 +55,7 @@ export default function RootLayout() {
   });
   const status = useAccountStatus();
   const userId = useSyncExternalStore(account.subscribe, () => { const me = account.getSnapshot(); return me.status === "signed-in" ? me.userId : null; });
+  const gate = usePlanGate();
   const [isSplashTooLong, setIsSplashTooLong] = useState(false);
   useSessionRefresh();
 
@@ -67,10 +77,9 @@ export default function RootLayout() {
       forgetInvite();
       return;
     }
-    // Swaps that finished while the app was closed land in My swaps; unfinished Apple purchases are sent again.
+    // Swaps that finished while the app was closed land in My swaps.
     void resumePendingRenders();
     void trackedRenders.recover();
-    void startPurchases();
     // And each time the app comes back to the front (the balance may have changed on the website too).
     const sub = AppState.addEventListener("change", (next) => {
       if (next !== "active") return;
@@ -81,6 +90,11 @@ export default function RootLayout() {
     return () => sub.remove();
   }, [isSignedIn, userId]);
 
+  // RevenueCat follows whoever is signed in, so a purchase belongs to this account.
+  useEffect(() => {
+    void identify(userId);
+  }, [userId]);
+
   if (!isReady) {
     // Still deciding signed in or not: a neutral screen, never a flash of the sign-in page.
     return isSplashTooLong ? (
@@ -90,19 +104,44 @@ export default function RootLayout() {
     ) : null;
   }
 
+  if (isSignedIn && (gate === "loading" || gate === "error")) {
+    // Never flash the paywall at someone who has a plan: wait for the server's answer first.
+    return (
+      <View style={styles.waiting}>
+        {gate === "loading" ? (
+          <ActivityIndicator color={colors.fg} />
+        ) : (
+          <>
+            <Text style={styles.waitTitle}>Couldn&apos;t check your plan</Text>
+            <Text style={styles.waitBody}>Check your connection and try again.</Text>
+            <Button label="Try again" onPress={() => void account.refreshCredits()} style={styles.waitButton} />
+            <Button label="Sign out" variant="quiet" onPress={() => void account.signOut()} style={styles.waitButton} />
+          </>
+        )}
+      </View>
+    );
+  }
+  const hasPlan = gate === "plan";
+
   return (
     // Gesture root: the before/after sliders use react-native-gesture-handler.
     <GestureHandlerRootView style={styles.root}>
       <StatusBar style="light" />
       <Stack key={userId ?? "signed-out"} screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
-        <Stack.Protected guard={isSignedIn}>
+        <Stack.Protected guard={isSignedIn && hasPlan}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="pack/[id]" options={pageHeader} />
           <Stack.Screen name="swap/[id]" options={pageHeader} />
           <Stack.Screen name="capture/[pack]" options={pageHeader} />
           <Stack.Screen name="snap" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
           <Stack.Screen name="studio/[id]" options={pageHeader} />
-          <Stack.Screen name="buy" options={{ ...pageHeader, presentation: "modal" }} />
+          {/* No header bar: the sheet has its own headline and Close (app/buy.tsx). */}
+          <Stack.Screen name="buy" options={{ presentation: "modal", headerShown: false }} />
+        </Stack.Protected>
+        {/* Hard paywall (owner's choice, 2026-10-10): without a plan, only the plans and account settings. */}
+        <Stack.Protected guard={isSignedIn && !hasPlan}>
+          <Stack.Screen name="paywall" />
+          <Stack.Screen name="manage-account" options={{ ...pageHeader, title: "Account" }} />
         </Stack.Protected>
         <Stack.Protected guard={!isSignedIn}>
           <Stack.Screen name="sign-in" />
@@ -130,6 +169,9 @@ export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   waiting: { flex: 1, backgroundColor: colors.bg, alignItems: "center", justifyContent: "center" },
+  waitTitle: { fontFamily: fonts.semibold, fontSize: 22, color: colors.fg, textAlign: "center" },
+  waitBody: { fontFamily: fonts.regular, fontSize: 16, lineHeight: 23, color: colors.muted, textAlign: "center", marginBottom: space.sm },
+  waitButton: { alignSelf: "stretch", marginHorizontal: space.lg, marginTop: space.sm },
   error: { flex: 1, backgroundColor: colors.bg, justifyContent: "center", padding: space.lg, gap: space.md },
   errorTitle: { fontFamily: fonts.semibold, fontSize: 24, color: colors.fg },
   errorBody: { fontFamily: fonts.regular, fontSize: 16, lineHeight: 23, color: colors.muted },

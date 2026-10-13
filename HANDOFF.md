@@ -6,6 +6,100 @@ Working notes for whoever picks up next (people or AI coding sessions). New here
 This repo is public. Account details (emails, dashboard ids, project refs, billing) live with the owner, not here.
 Never add them to this file or any other tracked file.
 
+## Mac session: iPhone app redesign + subscriptions (2026-10-07 → 10-11) — START HERE
+
+Everything below is on the local branch **`feat/ios-app`** (tracks `origin/claude/web-vs-ios-strategy-435098`) in
+`~/Tessera/Scryle`. **Nothing is committed, pushed, merged or live** (~75 changed files). The live site is still in
+waitlist-only mode (`apps/web/lib/site-mode.ts`, `WAITLIST_ONLY = true`), so visitors see none of it.
+
+### First things to do
+
+1. **Commit** in logical pieces (owner asked to be asked first): (a) app design pass, (b) subscriptions phase 1
+   server, (c) phase 2 app, (d) phase 3 website. Then push the branch and open a PR. Don't merge; the owner merges.
+2. **Owner decision pending: what an invite gives.** Invites used to give both people 2 free pictures as ledger
+   credits, which no longer count. Invite panels are hidden (comments mark the spots in `apps/mobile/src/app/(tabs)/index.tsx`,
+   `(tabs)/account.tsx`, `apps/web/components/account/account-page.tsx`, `buy-sheet.tsx`); invite links still record
+   referrals. Options: extra swaps added to the current month, or a free first month (RevenueCat promotional entitlement).
+3. **Phase 4:** Terms and Privacy (protected) still describe packs, the free picture and Stripe Checkout; update for
+   subscriptions (auto-renewal, cancelling, no rollover, RevenueCat as processor). Then README / ONBOARDING /
+   `apps/mobile/README.md` (it still describes `expo-iap` and pack products).
+
+### Subscriptions (owner's decisions, 2026-10-10)
+
+Full plan, decisions, owner setup steps and sources: **[`docs/plans/subscriptions-revenuecat.md`](docs/plans/subscriptions-revenuecat.md)**.
+
+- **Subscriptions only**, via **RevenueCat**: Apple in the app, RevenueCat Web Billing (Stripe) on the website. One
+  plan works on both (RevenueCat app user id = Supabase user id).
+- Plans (`packages/core/src/subscriptions.ts`): Starter 25 / Plus 60 / Pro 150 swaps a month; $4.99 / $9.99 / $19.99
+  monthly, $49.99 / $99.99 / $199.99 yearly. Product ids `io.scryapp.sub.<tier>.<monthly|yearly>` in every store.
+- **Monthly allowance, no rollover.** Yearly plans reset monthly too. **No free swap. No trial. Hard paywall in the
+  app. Our own paywall design.** Old ledger credits no longer count (owner confirmed no real money bought packs).
+- **Who has access** (`hasAccess` in `apps/web/lib/server/subscriptions.ts`): refunded → no; otherwise until
+  `expiresAt`. Billing problems are handled by the store grace period moving `expiresAt` (no code change needed).
+
+What was built:
+
+| Phase | Where | What |
+|---|---|---|
+| 1 server | `supabase/migrations/0012_subscriptions.sql` (+ `setup-all.sql`), `apps/web/lib/server/subscriptions.ts`, `credits.ts`, `accounts.ts`, `app/api/revenuecat/webhook/route.ts`, `app/api/credits/route.ts` | `subscriptions` + `swap_allowance` tables, `spend_swap` / `swap_balance`, refunds go back to their month. Webhook checks the Authorization header and re-reads the customer from RevenueCat on every event (duplicates and unknown types are harmless). `/api/credits` returns `{ credits, plan }`. |
+| 2 app | `apps/mobile/src/lib/purchases.ts`, `components/plans-screen.tsx`, `app/paywall.tsx`, `app/buy.tsx`, `app/manage-account.tsx`, `app/_layout.tsx`, `components/plan-card.tsx`, `lib/account.ts` | `react-native-purchases` replaces `expo-iap`. Hard paywall guard in `_layout.tsx` (loading screen while the plan loads, "Couldn't check your plan" on error). Restore purchases, Manage subscription, plan card. |
+| 3 website | `apps/web/lib/account/subscribe.ts`, `components/account/plan-picker.tsx`, `buy-sheet.tsx`, `components/home/pricing.tsx`, `lib/security/csp.ts` | `@revenuecat/purchases-js`. Plan picker on the pricing section and in the buy sheet. Removed: Stripe Checkout routes, `checkout-return`, Apple pack routes + `lib/server/apple.ts` + `@apple/app-store-server-library`. CSP allows RevenueCat + Stripe frames. |
+| shared | `packages/core/src/plan-offers.ts`, `api.ts` (`PlanInfo`) | Store products → paywall cards, preview plans for builds without keys. |
+
+Before any of this can go live, the owner must: create the RevenueCat project, the six App Store subscriptions and
+Stripe prices, set the keys (`EXPO_PUBLIC_REVENUECAT_IOS_KEY`, `NEXT_PUBLIC_REVENUECAT_WEB_KEY`,
+`REVENUECAT_SECRET_API_KEY`, `REVENUECAT_WEBHOOK_AUTH`), and run `0012_subscriptions.sql` on production. Until a plan
+can be sold, nobody can make swaps (no free swap), so phases 1–3 must ship together. The App Review demo account needs
+a RevenueCat promotional entitlement to get past the hard paywall.
+
+### App design pass (owner reviewed and liked it)
+
+- Shared title style `headline(size)` in `apps/mobile/src/theme.ts` (web hero's -0.028em tracking); used on sign-in,
+  Home, category, Account, My swaps, paywall. Break long titles by hand (`\n`) or use `lineBreakStrategyIOS="push-out"`.
+- Sign-in: Seam logo lockup (`components/seam-mark.tsx`, drawn with Views) + "See it before you buy it."
+- Home: two-line title, shorter category cards (fit above the tab bar), swaps-left pill in the top row.
+- Saved swap page: **Shop this look** with store links (`components/shop-look.tsx`, `lib/swap-items.ts`; label i ↔
+  selection i); the studio's after-swap list uses the same component.
+- Category page: no duplicate header title, light (not denim) selected chip, Clothing rules as three short lines.
+- Account: avatar initial, Sign out row, Delete account as a quiet link (confirm flow unchanged).
+
+Ideas not done yet: a before/after slider in the empty middle of the sign-in screen; a broader studio design review.
+
+Camera/photo review pass (2026-10-11): `apps/mobile/src/app/capture/[pack].tsx` now keeps the photo source through
+review and scan retries, labels the source and category, and gives the photo a fixed flexible preview area so the
+actions remain visible on short screens. Scanning has a clearer progress message. This is a local UI change; no
+provider call or device acceptance test was run. `npx turbo run typecheck test` passed (core 57, web 424, app 88),
+web ESLint and targeted mobile ESLint passed, and `git diff --check` passed. Studio design review is still next.
+The studio's "Make a link" action now opens the share sheet as soon as the link is created; later taps reuse it.
+
+### Running the iPhone app on this Mac
+
+- Xcode 27 / iOS 27 simulator ("iPhone 18 Pro"). CocoaPods 1.17 runs on Homebrew's portable Ruby in `~/.local`
+  (`~/.local/bin/pod`; system Ruby 2.6 can't build it). `gh` is at `~/.local/bin/gh`.
+- `apps/mobile/ios/` is generated and git-ignored. **It holds a local iOS 27 launch fix**: `AppDelegate.swift` adopts
+  `ExpoReactNativeFactoryProvider` and `Info.plist` has a `UIApplicationSceneManifest` using Expo's
+  `EXExpoAppSceneDelegate` (iOS 27 kills apps without the scene life cycle). **`expo prebuild` wipes it.** Make it
+  permanent with a small Expo config plugin before EAS moves to Xcode 27, or TestFlight builds will crash on launch.
+- After adding a native package: `cd apps/mobile/ios && PATH="$HOME/.local/bin:$PATH" LANG=en_US.UTF-8 pod install`,
+  then rebuild the `Scryle` scheme of `Scryle.xcworkspace`. Don't run `expo prebuild` (it also edits `package.json`).
+- Metro on **port 8082** (8081 is often the Brainchild app's): `cd apps/mobile && npx expo start --dev-client --port 8082`,
+  then open `exp+scryle://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8082` in the simulator.
+- Sign-in needs `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (the web's public values; ask the
+  owner). AI tools may not write `.env.local` (`AI_RULES.md`), so either the owner puts them there or Metro is started
+  with them as environment variables. Without RevenueCat keys the paywall shows **preview** plans that can't be bought.
+- The app calls the **live** site by default (`EXPO_PUBLIC_API_URL` empty), which doesn't have phase 1 yet, so every
+  account sees the paywall. Don't run scans or renders against live without a price and a yes (`AI_RULES.md` 1.3).
+- **Expo rewrites `apps/mobile/tsconfig.json` every time Metro starts**; `git checkout -- apps/mobile/tsconfig.json`
+  before committing.
+- Driving the simulator: links like `scryle://swaps` / `scryle://account` show an "Open in Scryle?" prompt; taps on
+  the native tab bar and swipes near cards are unreliable, and the Expo dev-tools gear button covers the top right
+  (drag it aside). It's dev-only.
+
+### Checks at the end of the session
+
+`npx turbo run typecheck test` (core 57, web 424, app 91 passing), web and app lint clean. The 4 old eslint warnings
+(unused disables in the two `opengraph-image.tsx` files) were removed.
+
 ## Repo made ready for collaborators (2026-09-27)
 
 - Account details removed from this file. Added `README.md`, `ONBOARDING.md`, `CONTRIBUTING.md`, `SECURITY.md`,

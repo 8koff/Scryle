@@ -27,11 +27,26 @@ export {
 } from "./credits";
 export type { CreditPack, CreditPackId, PaymentStore } from "./credits";
 
+export {
+  addMonthsUtc,
+  allowanceMonthStart,
+  getPlanTier,
+  PLAN_TIERS,
+  planForProduct,
+  SUBSCRIPTION_PRODUCT_PREFIX,
+  subscriptionProductId,
+  yearlySavingPercent,
+} from "./subscriptions";
+export type { PlanPeriod, PlanTier, PlanTierId } from "./subscriptions";
+export { isPreview, offersFromPackages, previewOffers } from "./plan-offers";
+export type { PlanOffer } from "./plan-offers";
+
 export type {
   ApiErrorCode,
   ApiResponse,
   CheckoutDone,
   CreditsInfo,
+  PlanInfo,
   InviteInfo,
   RenderCard,
   RenderStart,
