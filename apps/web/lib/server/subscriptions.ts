@@ -33,8 +33,8 @@ export function hasAccess(sub: Subscription, now: Date): boolean {
   // Refunded: the money went back, so the plan stops at once.
   if (sub.refundedAt) return false;
   // Cancelled plans keep their swaps until the paid period ends (willRenew doesn't matter here).
-  // A failing payment doesn't cut access by itself: during the store's grace period RevenueCat moves
-  // expiresAt forward, and once the grace period runs out without payment, expiresAt has passed.
+  // A failing payment doesn't cut access by itself: we fold RevenueCat's separate grace-period date into
+  // expiresAt, and once the grace period runs out without payment, expiresAt has passed.
   return sub.expiresAt > now;
 }
 
@@ -159,6 +159,7 @@ const CustomerSchema = z.object({
           .object({
             purchase_date: z.string(),
             expires_date: z.string().nullable(),
+            grace_period_expires_date: z.string().nullable().optional(),
             store: z.string(),
             unsubscribe_detected_at: z.string().nullable().optional(),
             billing_issues_detected_at: z.string().nullable().optional(),
@@ -179,7 +180,11 @@ export function subscriptionFromCustomer(userId: string, customer: Customer): Su
   const { entitlements, subscriptions } = customer.subscriber;
   const known = Object.entries(subscriptions).flatMap(([productId, s]) => {
     const plan = planForProduct(productId);
-    return plan && s.expires_date ? [{ productId, plan, s, expiresAt: new Date(s.expires_date) }] : [];
+    if (!plan || !s.expires_date) return [];
+    const paidUntil = new Date(s.expires_date);
+    const graceUntil = date(s.grace_period_expires_date ?? null);
+    const expiresAt = graceUntil && graceUntil > paidUntil ? graceUntil : paidUntil;
+    return [{ productId, plan, s, expiresAt }];
   });
   const entitled = entitlements[ENTITLEMENT]?.product_identifier;
   const chosen = known.find((k) => k.productId === entitled) ?? known.sort((a, b) => +b.expiresAt - +a.expiresAt)[0];

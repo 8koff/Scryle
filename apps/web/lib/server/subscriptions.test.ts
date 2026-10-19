@@ -38,6 +38,18 @@ const customer = (subs: Customer["subscriber"]["subscriptions"], entitled?: stri
 });
 
 describe("subscriptionFromCustomer", () => {
+  it("keeps access through Apple's grace period, then stops it", () => {
+    const result = subscriptionFromCustomer(USER, customer({
+      "io.scryapp.sub.starter.monthly": {
+        purchase_date: "2026-09-03T12:00:00Z", expires_date: "2026-10-03T12:00:00Z",
+        grace_period_expires_date: "2026-10-10T12:00:00Z", store: "app_store",
+        billing_issues_detected_at: "2026-10-03T12:00:00Z",
+      },
+    }, "io.scryapp.sub.starter.monthly"));
+    expect(planInfo(result, at("2026-10-05T12:00:00Z"))).toMatchObject({ tier: "starter", hasBillingIssue: true });
+    expect(planInfo(result, at("2026-10-10T12:00:00Z"))).toBeNull();
+    expect(currentAllowance(result && { ...result, refundedAt: at("2026-10-04T12:00:00Z") }, at("2026-10-05T12:00:00Z"))).toBeNull();
+  });
   it("reads the plan behind the swaps entitlement", () => {
     const result = subscriptionFromCustomer(
       USER,
@@ -84,6 +96,11 @@ describe("allowance", () => {
 
   it("gives nothing once the plan has ended", () => {
     expect(currentAllowance(sub({ expiresAt: at("2026-10-09T00:00:00Z") }), now)).toBeNull();
+  });
+
+  it("cancellation keeps access until the paid period ends, refunds end it immediately", () => {
+    expect(planInfo(sub({ willRenew: false }), now)?.willRenew).toBe(false);
+    expect(currentAllowance(sub({ refundedAt: now }), now)).toBeNull();
   });
 
   it("describes the plan for the app", () => {
