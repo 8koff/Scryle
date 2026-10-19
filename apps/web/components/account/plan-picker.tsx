@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { getPlanTier, previewOffers, yearlySavingPercent, type PlanOffer, type PlanPeriod, type PlanTierId } from "@retrofit/core";
+import { getPlanTier, planBilling, previewOffers, yearlySavingPercent, type PlanOffer, type PlanPeriod, type PlanTierId } from "@retrofit/core";
 import { useEffect, useState } from "react";
 import { SignInSheet } from "@/components/account/sign-in-sheet";
 import { loadWebOffers, subscribeWeb, type SubscribeResult, type WebOffers } from "@/lib/account/subscribe";
@@ -53,10 +53,12 @@ export function PlanPicker({ variant, onSubscribed }: { variant: "page" | "sheet
   const shown = list.filter((o) => o.period === period);
   const chosen = shown.find((o) => o.tier.id === tier) ?? null;
   const isCurrent = (o: PlanOffer) => current?.tier === o.tier.id && current.period === o.period;
+  // An Apple plan is changed in the iPhone app; buying here would be a second plan, billed twice.
+  const billedByApple = planBilling(current) === "apple";
   const saving = yearlySavingPercent(getPlanTier("pro")!);
 
   const subscribe = async () => {
-    if (!chosen || busy) return;
+    if (!chosen || busy || billedByApple) return;
     const fresh = account.getSnapshot();
     if (fresh.status !== "signed-in") return setWaitingForSignIn(true);
     setBusy(true);
@@ -139,6 +141,12 @@ export function PlanPicker({ variant, onSubscribed }: { variant: "page" | "sheet
         })}
       </div>
 
+      {billedByApple && (
+        <p className="mt-3 text-[14px] text-muted">
+          Your plan is billed by Apple. Change or cancel it in the Scryle iPhone app, so you don&apos;t pay twice.
+        </p>
+      )}
+
       {notice && (
         <p role="alert" className="mt-3 text-[14px] font-medium text-accent-ink">
           {notice}
@@ -148,16 +156,18 @@ export function PlanPicker({ variant, onSubscribed }: { variant: "page" | "sheet
       <button
         type="button"
         onClick={() => void subscribe()}
-        disabled={!chosen || busy || (chosen ? isCurrent(chosen) : false) || me.status === "unavailable"}
+        disabled={!chosen || busy || billedByApple || (chosen ? isCurrent(chosen) : false) || me.status === "unavailable"}
         className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-full bg-accent text-[16px] font-semibold text-on-accent transition-[transform,background-color,opacity] hover:bg-accent-2 active:scale-[0.98] disabled:opacity-50"
       >
         {busy
           ? "Opening…"
-          : !chosen
-            ? "Subscribe"
-            : isCurrent(chosen)
-              ? "This is your plan"
-              : `${current ? "Switch to" : "Subscribe to"} ${chosen.tier.label} · ${chosen.priceString}/${chosen.period === "monthly" ? "mo" : "yr"}`}
+          : billedByApple
+            ? "Billed by Apple"
+            : !chosen
+              ? "Subscribe"
+              : isCurrent(chosen)
+                ? "This is your plan"
+                : `${current ? "Switch to" : "Subscribe to"} ${chosen.tier.label} · ${chosen.priceString}/${chosen.period === "monthly" ? "mo" : "yr"}`}
       </button>
       <p className="mt-3 text-[12px] leading-relaxed text-muted">
         Renews automatically every {PER[period]} until you cancel. Cancel anytime from your account. Pictures you don&apos;t use

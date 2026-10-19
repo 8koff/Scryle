@@ -32,6 +32,7 @@ export {
   allowanceMonthStart,
   getPlanTier,
   PLAN_TIERS,
+  planBilling,
   planForProduct,
   SUBSCRIPTION_PRODUCT_PREFIX,
   subscriptionProductId,

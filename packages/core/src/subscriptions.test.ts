@@ -4,6 +4,7 @@ import {
   allowanceMonthStart,
   getPlanTier,
   PLAN_TIERS,
+  planBilling,
   planForProduct,
   subscriptionProductId,
   yearlySavingPercent,
@@ -66,5 +67,15 @@ describe("allowance months", () => {
   it("never returns a start before the anchor, even with a clock that's behind", () => {
     const anchor = at("2026-10-03T12:00:00Z");
     expect(allowanceMonthStart(anchor, at("2026-10-01T00:00:00Z"))).toEqual(anchor);
+  });
+});
+
+describe("planBilling", () => {
+  it("says who bills a plan, so nobody is sold a second one", () => {
+    expect(planBilling({ store: "app_store" })).toBe("apple");
+    expect(planBilling({ store: "rc_billing" })).toBe("web");
+    expect(planBilling({ store: "stripe" })).toBe("web");
+    expect(planBilling({ store: "promotional" })).toBeNull();
+    expect(planBilling(null)).toBeNull();
   });
 });

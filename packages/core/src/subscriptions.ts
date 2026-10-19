@@ -64,3 +64,12 @@ export function allowanceMonthStart(anchor: Date, now: Date): Date {
   while (addMonthsUtc(anchor, months + 1) <= now) months++;
   return addMonthsUtc(anchor, months);
 }
+
+/**
+ * Who bills a plan: Apple ("apple"), the website ("web", RevenueCat Web Billing), or nobody (a free promotional
+ * grant). The app and the website only sell a plan where none is billed elsewhere, so nobody pays twice.
+ */
+export function planBilling(plan: { store: string } | null | undefined): "apple" | "web" | null {
+  if (!plan || plan.store === "promotional") return null;
+  return plan.store === "app_store" ? "apple" : "web";
+}

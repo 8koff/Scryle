@@ -1,11 +1,13 @@
-import { getPlanTier, yearlySavingPercent, type PlanOffer, type PlanPeriod, type PlanTierId } from "@retrofit/core";
+import { getPlanTier, planBilling, yearlySavingPercent, type PlanOffer, type PlanPeriod, type PlanTierId } from "@retrofit/core";
 import { router } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Button } from "@/components/button";
 import { LegalLinks } from "@/components/legal-links";
 import { SeamMark } from "@/components/seam-mark";
+import { API_URL } from "@/lib/config";
 import { buyPlan, loadOffers, restorePlan, type BuyResult, type Offers } from "@/lib/purchases";
 import { useAccount } from "@/lib/use-account";
 import { colors, fonts, headline, radius, space } from "@/theme";
@@ -50,6 +52,8 @@ export function PlansScreen({ mode }: Props) {
   const shown = list.filter((o) => o.period === period);
   const chosen = shown.find((o) => o.tier.id === tier) ?? null;
   const isCurrent = (o: PlanOffer) => current?.tier === o.tier.id && current.period === o.period;
+  // A website plan is changed on the website; buying here would be a second plan, billed twice.
+  const billedOnWeb = planBilling(current) === "web";
   const saving = yearlySavingPercent(getPlanTier("pro")!);
 
   const finish = (result: BuyResult) => {
@@ -65,7 +69,7 @@ export function PlansScreen({ mode }: Props) {
   };
 
   const onBuy = async () => {
-    if (!chosen || busy) return;
+    if (!chosen || busy || billedOnWeb) return;
     setNotice(null);
     setBusy("buy");
     finish(await buyPlan(chosen));
@@ -153,6 +157,15 @@ export function PlansScreen({ mode }: Props) {
           })}
         </View>
 
+        {billedOnWeb ? (
+          <View style={styles.unavailable}>
+            <Text style={styles.notice}>Your plan is billed on the Scryle website. Change or cancel it there, so you don&apos;t pay twice.</Text>
+            <Pressable accessibilityRole="link" onPress={() => void WebBrowser.openBrowserAsync(`${API_URL}/app/account`)} style={styles.retry}>
+              <Text style={styles.restoreText}>Manage on the website</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
         {notice ? (
           <Text style={styles.notice} accessibilityLiveRegion="polite">
             {notice}
@@ -161,14 +174,16 @@ export function PlansScreen({ mode }: Props) {
 
         <Button
           label={
-            !chosen
-              ? "Subscribe"
-              : isCurrent(chosen)
-                ? "This is your plan"
-                : `${current ? "Switch to" : "Subscribe to"} ${chosen.tier.label} · ${chosen.priceString}/${PER[chosen.period] === "month" ? "mo" : "yr"}`
+            billedOnWeb
+              ? "Billed on the website"
+              : !chosen
+                ? "Subscribe"
+                : isCurrent(chosen)
+                  ? "This is your plan"
+                  : `${current ? "Switch to" : "Subscribe to"} ${chosen.tier.label} · ${chosen.priceString}/${PER[chosen.period] === "month" ? "mo" : "yr"}`
           }
           isBusy={busy === "buy"}
-          disabled={!chosen || isCurrent(chosen) || busy !== null}
+          disabled={!chosen || billedOnWeb || isCurrent(chosen) || busy !== null}
           onPress={() => void onBuy()}
         />
         {/* Apple requires the renewal terms next to the button. */}
