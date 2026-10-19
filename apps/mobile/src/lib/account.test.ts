@@ -75,6 +75,15 @@ describe("usesApple", () => {
 });
 
 describe("createAccountStore", () => {
+  test("checks the new account's plan when switching directly between users", async () => {
+    const { store, emit, fetcher } = makeStore({ session: { access_token: "first", user: { id: "u1" } } });
+    await flush();
+    fetcher.mockResolvedValueOnce(new Response(JSON.stringify({ success: true, data: { credits: 150, plan: PRO } })));
+    emit({ access_token: "second", user: { id: "u2" } });
+    await flush();
+    expect(store.getSnapshot()).toMatchObject({ userId: "u2", plan: PRO, planCheck: "ready" });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
   test("is unavailable when sign-in keys are missing", () => {
     const store = createAccountStore({ getClient: () => null, apiUrl: "x", appleSignIn: async () => null });
     store.subscribe(() => {});

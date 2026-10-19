@@ -137,7 +137,7 @@ export function createAccountStore({
   };
 
   const apply = (session: SessionLike | null) => {
-    const wasSignedIn = Boolean(token);
+    const previousUser = state.status === "signed-in" ? state.userId : null;
     token = session?.access_token ?? null;
     if (!session) return set({ status: "signed-out" });
     // Same person (a token refresh): keep what's known about their plan.
@@ -152,7 +152,7 @@ export function createAccountStore({
       planCheck: known?.planCheck ?? "loading",
       hasApple: usesApple(session.user.app_metadata),
     });
-    if (!wasSignedIn) void refreshCredits();
+    if (previousUser !== session.user.id) void refreshCredits();
   };
 
   const start = () => {

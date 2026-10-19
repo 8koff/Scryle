@@ -23,7 +23,9 @@ export const canBuyHere = () =>
 let sdk: Promise<Sdk | null> | null = null;
 /** Loaded on first use, so the app still opens in Expo Go and without a key. */
 function loadSdk(): Promise<Sdk | null> {
-  sdk ??= canBuyHere() ? import("react-native-purchases").then((m) => m.default).catch(() => null) : Promise.resolve(null);
+  // Lazy native loading keeps Expo Go usable and works in both Metro and Jest.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  sdk ??= canBuyHere() ? Promise.resolve().then(() => require("react-native-purchases").default as Sdk).catch(() => null) : Promise.resolve(null);
   return sdk;
 }
 
@@ -33,7 +35,7 @@ let identifiedAs: string | null = null;
  * Tells RevenueCat who is signed in. The app user id is our account id, which is how the server
  * matches a purchase to an account and how a plan bought here also works on the website.
  */
-export async function identify(userId: string | null): Promise<void> {
+async function identifyNow(userId: string | null): Promise<void> {
   const Purchases = await loadSdk();
   if (!Purchases || userId === identifiedAs) return;
   try {
@@ -52,6 +54,27 @@ export async function identify(userId: string | null): Promise<void> {
   }
 }
 
+// Keep sign-in/sign-out operations in order when the account changes quickly.
+let identityQueue: Promise<void> = Promise.resolve();
+export function identify(userId: string | null): Promise<void> {
+  identityQueue = identityQueue.then(() => identifyNow(userId));
+  return identityQueue;
+}
+
+const signedInUser = () => {
+  const me = account.getSnapshot();
+  return me.status === "signed-in" ? me.userId : null;
+};
+
+/** Never open a payment sheet for an anonymous or previously signed-in account. */
+async function sdkForAccount(): Promise<{ Purchases: Sdk; userId: string } | null> {
+  const userId = signedInUser();
+  if (!userId) return null;
+  await identify(userId);
+  const Purchases = await loadSdk();
+  return Purchases && identifiedAs === userId && signedInUser() === userId ? { Purchases, userId } : null;
+}
+
 export type Offers = { status: "ready"; offers: Offer[] } | { status: "preview"; offers: PlanOffer[]; message: string } | { status: "unavailable"; message: string };
 
 const STORE_DOWN = "Couldn't reach the App Store. Check your connection and try again.";
@@ -65,7 +88,9 @@ export async function loadOffers(): Promise<Offers> {
       : { status: "unavailable", message: "Subscriptions work in the TestFlight or App Store version of Scryle." };
   }
   try {
-    const offering = (await Purchases.getOfferings()).current;
+    const ready = await sdkForAccount();
+    if (!ready) return { status: "unavailable", message: "Couldn't connect your account to the App Store. Please try again." };
+    const offering = (await ready.Purchases.getOfferings()).current;
     const offers = offersFromPackages(offering?.availablePackages ?? []);
     return offers.length ? { status: "ready", offers } : { status: "unavailable", message: "The plans aren't available right now. Please try again later." };
   } catch {
@@ -80,11 +105,13 @@ const CONFIRM_MS = 30_000;
 const CONFIRM_EVERY_MS = 2_000;
 
 /** Asks our server until it reports a plan. The plan only counts once the server has it. */
-async function waitForPlan(): Promise<BuyResult> {
+async function waitForPlan(userId: string): Promise<BuyResult> {
   const deadline = Date.now() + CONFIRM_MS;
   while (Date.now() < deadline) {
+    if (signedInUser() !== userId) return { kind: "cancelled" };
     await account.refreshCredits();
     const me = account.getSnapshot();
+    if (signedInUser() !== userId) return { kind: "cancelled" };
     if (me.status === "signed-in" && me.plan) return { kind: "active" };
     await new Promise((resolve) => setTimeout(resolve, CONFIRM_EVERY_MS));
   }
@@ -99,28 +126,30 @@ const isCancel = (Purchases: Sdk, error: unknown) => {
 /** Subscribes (or changes plan). Apple shows its own sheet; then we wait for our server. */
 export async function buyPlan(offer: PlanOffer): Promise<BuyResult> {
   if (!offer.pkg) return { kind: "error", message: "Preview only: this development build can't subscribe, so nothing was bought." };
-  const Purchases = await loadSdk();
-  if (!Purchases) return { kind: "error", message: STORE_DOWN };
+  const ready = await sdkForAccount();
+  if (!ready) return { kind: "error", message: "Couldn't connect your account to the App Store. Please try again." };
+  const { Purchases, userId } = ready;
   try {
     await Purchases.purchasePackage(offer.pkg as PurchasesPackage);
   } catch (error) {
     if (isCancel(Purchases, error)) return { kind: "cancelled" };
     return { kind: "error", message: (error as { message?: string })?.message || "The purchase didn't go through. Please try again." };
   }
-  return waitForPlan();
+  return waitForPlan(userId);
 }
 
 /** Restore purchases (Apple requires this button): re-links an existing plan to this account. */
 export async function restorePlan(): Promise<BuyResult> {
-  const Purchases = await loadSdk();
-  if (!Purchases) return { kind: "error", message: "Restore works in the TestFlight or App Store version of Scryle." };
+  const ready = await sdkForAccount();
+  if (!ready) return { kind: "error", message: "Couldn't connect your account to the App Store. Please try again." };
+  const { Purchases, userId } = ready;
   try {
     const info = await Purchases.restorePurchases();
-    if (!Object.keys(info.entitlements.active).length) return { kind: "error", message: "No active plan was found for this Apple ID." };
+    if (!info.entitlements.active.swaps) return { kind: "error", message: "No active plan was found for this Apple ID." };
   } catch {
     return { kind: "error", message: STORE_DOWN };
   }
-  return waitForPlan();
+  return waitForPlan(userId);
 }
 
 /**
