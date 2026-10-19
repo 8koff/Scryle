@@ -9,7 +9,13 @@ const MODEL_HOST = "https://storage.googleapis.com";
  * @revenuecat/purchases-js bundle and Stripe's CSP guide. Stripe.js itself is loaded by the SDK,
  * which 'strict-dynamic' already allows; its card fields run in Stripe's frames.
  */
-const PAYMENT_CONNECT = ["https://api.revenuecat.com", "https://sdk.revenuecat-static.com", "https://api.stripe.com"];
+const PAYMENT_CONNECT = [
+  "https://api.revenuecat.com",
+  "https://sdk.revenuecat-static.com",
+  // RevenueCat's own usage data from its payment form (owner allowed it, 2026-10-19).
+  "https://e.revenue.cat",
+  "https://api.stripe.com",
+];
 const PAYMENT_FRAMES = ["https://js.stripe.com", "https://*.js.stripe.com", "https://hooks.stripe.com"];
 
 /** A fresh, unguessable value for each page load. */
