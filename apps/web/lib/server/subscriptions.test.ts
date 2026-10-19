@@ -190,7 +190,22 @@ describe("spending the monthly allowance", () => {
     expect((await subscriptions.get(USER))?.period).toBe("yearly");
   });
 
-  it("raises this month's swaps at once on an upgrade, keeping what was used", async () => {
+  it("starts a fresh month when an upgrade starts a new billing period (owner's choice)", async () => {
+    const { credits, subscriptions } = setup(sub());
+    for (let i = 0; i < 20; i++) await credits.spend(USER);
+    // What RevenueCat reports after an Apple upgrade: the old plan ends, the new one starts now.
+    const upgraded = subscriptionFromCustomer(USER, customer(
+      {
+        "io.scryapp.sub.starter.monthly": { purchase_date: "2026-10-03T12:00:00Z", expires_date: "2026-10-10T00:00:00Z", store: "app_store" },
+        "io.scryapp.sub.pro.monthly": { purchase_date: "2026-10-10T00:00:00Z", expires_date: "2026-11-10T00:00:00Z", store: "app_store" },
+      },
+      "io.scryapp.sub.pro.monthly",
+    ));
+    await subscriptions.save(upgraded!);
+    expect(await credits.balance(USER)).toBe(150);
+  });
+
+  it("a bigger plan in the same billing period raises this month's swaps, keeping what was used", async () => {
     const { credits, subscriptions } = setup(sub());
     for (let i = 0; i < 20; i++) await credits.spend(USER);
     await subscriptions.save(sub({ productId: "io.scryapp.sub.pro.monthly", tier: "pro" }));

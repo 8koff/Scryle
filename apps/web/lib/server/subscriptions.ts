@@ -16,7 +16,11 @@ export type Subscription = {
   tier: PlanTierId;
   period: PlanPeriod;
   store: string;
-  /** When the current billing period began: allowance months count from here. */
+  /**
+   * When the current billing period began: allowance months count from here. An upgrade starts a new billing
+   * period (Apple refunds the unused part of the old plan), so it also starts a fresh month with the new
+   * plan's full allowance; what was used on the old plan isn't carried over (owner's choice, 2026-10-19).
+   */
   periodStart: Date;
   expiresAt: Date;
   willRenew: boolean;
