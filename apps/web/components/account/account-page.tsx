@@ -132,7 +132,11 @@ export function AccountPage() {
           <button type="button" disabled={isManaging} onClick={() => void managePlan()} className={`${button} border border-line hover:border-fg`}>
             {isManaging ? "Opening…" : "Manage subscription"}
           </button>
-          <p className="mt-2 text-[13px] text-muted">Cancel or update billing with the store where you subscribed. Deleting your Scryle account does not cancel your subscription.</p>
+          <p className="mt-2 text-[13px] text-muted">
+            Cancel or update billing with the store where you subscribed.
+            {/* Deleting the account cancels a website plan (delete-account.ts), but never an Apple one. */}
+            {me.plan.store === "app_store" && " Deleting your Scryle account does not cancel your subscription."}
+          </p>
           {manageError && <p role="alert" className="mt-2 text-[14px] text-accent-ink">{manageError}</p>}
         </Row>
       )}

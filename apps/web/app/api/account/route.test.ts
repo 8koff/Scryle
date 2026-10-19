@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   getUserById: vi.fn<(id: string) => Promise<Lookup>>(async () => ({ data: { user: { app_metadata: { providers: ["email"] } } }, error: null })),
   appleConfig: vi.fn((): object | null => null),
   revoke: vi.fn<(code: string, config: object) => Promise<"revoked" | "bad-code" | "retry">>(async () => "revoked"),
+  deleteCustomer: vi.fn<(id: string) => Promise<void>>(async () => {}),
 }));
 
 vi.mock("@/lib/server/accounts", () => ({
@@ -25,6 +26,10 @@ vi.mock("@/lib/server/apple-signin", () => ({
   revokeAppleSignIn: mocks.revoke,
 }));
 
+vi.mock("@/lib/server/subscriptions", () => ({
+  revenueCatApiFromEnv: () => ({ deleteCustomer: mocks.deleteCustomer }),
+}));
+
 const { DELETE } = await import("./route");
 
 const CONFIG = { clientId: "io.scryapp.app" };
@@ -34,6 +39,8 @@ const appleAccount = () =>
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.stubEnv("REVENUECAT_SECRET_API_KEY", "test-only-key");
+  mocks.deleteCustomer.mockResolvedValue(undefined);
   mocks.appleConfig.mockReturnValue(null);
   mocks.revoke.mockResolvedValue("revoked");
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -110,5 +117,30 @@ describe("DELETE /api/account", () => {
 
     expect((await call({ confirm: "delete", appleAuthorizationCode: "c" })).status).toBe(502);
     expect(mocks.deleteUser).not.toHaveBeenCalled();
+  });
+
+  it("cancels the website plan in RevenueCat before deleting the account", async () => {
+    const order: string[] = [];
+    mocks.deleteCustomer.mockImplementationOnce(async () => void order.push("billing"));
+    mocks.deleteUser.mockImplementationOnce(async () => (order.push("user"), { error: null }));
+
+    expect((await call({ confirm: "delete" })).status).toBe(200);
+    expect(mocks.deleteCustomer).toHaveBeenCalledWith("u1");
+    expect(order).toEqual(["billing", "user"]);
+  });
+
+  it("keeps the account when RevenueCat can't be reached, so it can be tried again", async () => {
+    mocks.deleteCustomer.mockRejectedValueOnce(new Error("revenuecat down"));
+
+    expect((await call({ confirm: "delete" })).status).toBe(502);
+    expect(mocks.deleteUser).not.toHaveBeenCalled();
+  });
+
+  it("still deletes when RevenueCat isn't set up (no plan can exist), and logs it", async () => {
+    vi.stubEnv("REVENUECAT_SECRET_API_KEY", "");
+
+    expect((await call({ confirm: "delete" })).status).toBe(200);
+    expect(mocks.deleteCustomer).not.toHaveBeenCalled();
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining("RevenueCat key"));
   });
 });

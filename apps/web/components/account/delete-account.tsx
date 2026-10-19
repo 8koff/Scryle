@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ApiResponse } from "@/lib/api";
-import { account } from "@/lib/account/use-account";
+import { account, useAccount } from "@/lib/account/use-account";
 
 /** Everything this site keeps in the browser starts with this. */
 const STORAGE_PREFIX = "retrofit:";
@@ -18,10 +18,16 @@ function forgetThisBrowser() {
 
 type Phase = "idle" | "confirm" | "deleting" | "error";
 
+/** Where Apple subscribers cancel. Only they can: no server can cancel an Apple plan. */
+const APPLE_SUBSCRIPTIONS = "https://apps.apple.com/account/subscriptions";
+
 /** Closing an account takes two taps, the same as signing up. */
 export function DeleteAccount() {
   const router = useRouter();
+  const me = useAccount();
   const [phase, setPhase] = useState<Phase>("idle");
+  // Deleting cancels a website plan (server-side, through RevenueCat) but can't cancel an Apple one.
+  const plan = me.status === "signed-in" && me.plan?.willRenew ? me.plan : null;
 
   const remove = async () => {
     setPhase("deleting");
@@ -55,6 +61,16 @@ export function DeleteAccount() {
       <p className="mt-1 text-[14px] text-muted">
         This deletes your photos, pictures, share links and any pictures you haven&apos;t used. It can&apos;t be undone.
       </p>
+      {plan?.store === "app_store" && (
+        <p className="mt-2 text-[14px] text-fg">
+          Your plan renews through Apple. Deleting your account doesn&apos;t cancel it. Cancel it in your Apple subscriptions
+          first, or Apple keeps charging you.{" "}
+          <a href={APPLE_SUBSCRIPTIONS} target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-2">
+            Open Apple subscriptions
+          </a>
+        </p>
+      )}
+      {plan && plan.store !== "app_store" && <p className="mt-2 text-[14px] text-muted">This also cancels your plan, so it won&apos;t renew.</p>}
       {phase === "error" && (
         <p role="alert" className="mt-2 text-[14px] font-medium text-accent-ink">
           Couldn&apos;t delete your account. Please try again.

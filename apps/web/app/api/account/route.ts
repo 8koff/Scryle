@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getAdminDb, requireUser } from "@/lib/server/accounts";
 import { appleSignInFromEnv, revokeAppleSignIn, type AppleRevokeResult, type AppleSignInConfig } from "@/lib/server/apple-signin";
 import { deleteAccount } from "@/lib/server/delete-account";
+import { revenueCatApiFromEnv } from "@/lib/server/subscriptions";
 
 const Body = z.object({
   confirm: z.literal("delete"),
@@ -22,6 +23,17 @@ async function isAppleAccount(db: SupabaseClient, userId: string): Promise<boole
   if (error) throw new Error(`[account] user lookup failed: ${error.message}`);
   const providers: unknown = data.user?.app_metadata?.providers;
   return Array.isArray(providers) && providers.includes("apple");
+}
+
+/**
+ * Deletes the person from RevenueCat, which cancels a plan bought on the website (lib/server/delete-account.ts).
+ * Without a RevenueCat key no plan can be bought or recorded, so there's nothing to cancel (local development).
+ */
+function endBillingFor(userId: string): () => Promise<void> {
+  if (!process.env.REVENUECAT_SECRET_API_KEY?.trim()) {
+    return async () => console.error("[account] RevenueCat key isn't set up; no plan to cancel");
+  }
+  return () => revenueCatApiFromEnv().deleteCustomer(userId);
 }
 
 const fail = (status: number, error: string, code?: "apple_confirm") =>
@@ -48,6 +60,7 @@ export async function DELETE(request: Request) {
     await deleteAccount(auth.user.id, {
       shares: auth.accounts.shares,
       renders: auth.accounts.renders,
+      endBilling: endBillingFor(auth.user.id),
       deleteUser: async (id) => {
         const { error } = await db.auth.admin.deleteUser(id);
         if (error) throw new Error(`[account] user delete failed: ${error.message}`);
