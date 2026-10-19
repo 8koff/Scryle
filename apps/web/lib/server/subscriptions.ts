@@ -164,6 +164,8 @@ const CustomerSchema = z.object({
             unsubscribe_detected_at: z.string().nullable().optional(),
             billing_issues_detected_at: z.string().nullable().optional(),
             refunded_at: z.string().nullable().optional(),
+            /** A test purchase (TestFlight, App Review, sandbox testers): nobody paid for it. */
+            is_sandbox: z.boolean().optional(),
           })
           .loose(),
       )
@@ -175,12 +177,15 @@ export type Customer = z.infer<typeof CustomerSchema>;
 /**
  * The plan in a RevenueCat customer record, or null when there's none. The product behind the
  * `swaps` entitlement wins; without it (e.g. expired), the known plan that expires last.
+ * Test purchases are free, so they only count for accounts allowed to test (`allowSandbox`).
  */
-export function subscriptionFromCustomer(userId: string, customer: Customer): Subscription | null {
+export function subscriptionFromCustomer(userId: string, customer: Customer, { allowSandbox = false } = {}): Subscription | null {
   const { entitlements, subscriptions } = customer.subscriber;
   const known = Object.entries(subscriptions).flatMap(([productId, s]) => {
     const plan = planForProduct(productId);
     if (!plan || !s.expires_date) return [];
+    // Fails closed: a purchase RevenueCat doesn't mark as real (is_sandbox: false) counts as a test.
+    if (s.is_sandbox !== false && !allowSandbox) return [];
     const paidUntil = new Date(s.expires_date);
     const graceUntil = date(s.grace_period_expires_date ?? null);
     const expiresAt = graceUntil && graceUntil > paidUntil ? graceUntil : paidUntil;
@@ -206,20 +211,46 @@ export function subscriptionFromCustomer(userId: string, customer: Customer): Su
 
 export type RevenueCatApi = { customer(appUserId: string): Promise<Customer> };
 
-/** Reads a customer with the secret key. Throws on any failure, so the webhook is retried. */
-export function revenueCatApiFromEnv(env: Record<string, string | undefined> = process.env, doFetch: typeof fetch = fetch): RevenueCatApi {
+export type RevenueCatClient = RevenueCatApi & {
+  /**
+   * Deletes the customer from RevenueCat (for "Delete account"). RevenueCat then cancels a plan bought on the
+   * website and erases what it keeps about them; an Apple plan keeps renewing until they cancel it with Apple.
+   */
+  deleteCustomer(appUserId: string): Promise<void>;
+};
+
+/** RevenueCat's API with the secret key. Throws on any failure, so the webhook is retried. */
+export function revenueCatApiFromEnv(env: Record<string, string | undefined> = process.env, doFetch: typeof fetch = fetch): RevenueCatClient {
   const key = env.REVENUECAT_SECRET_API_KEY?.trim();
+  const call = (appUserId: string, method: "GET" | "DELETE") => {
+    if (!key) throw new Error("[revenuecat] REVENUECAT_SECRET_API_KEY isn't set");
+    return doFetch(`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(appUserId)}`, {
+      method,
+      headers: { Authorization: `Bearer ${key}` },
+      cache: "no-store",
+    });
+  };
   return {
     async customer(appUserId) {
-      if (!key) throw new Error("[revenuecat] REVENUECAT_SECRET_API_KEY isn't set");
-      const response = await doFetch(`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(appUserId)}`, {
-        headers: { Authorization: `Bearer ${key}` },
-        cache: "no-store",
-      });
+      const response = await call(appUserId, "GET");
       if (!response.ok) throw new Error(`[revenuecat] customer read failed: ${response.status}`);
       return CustomerSchema.parse(await response.json());
     },
+    async deleteCustomer(appUserId) {
+      const response = await call(appUserId, "DELETE");
+      // RevenueCat's docs: 404 means there's no such customer, which is just as deleted.
+      if (!response.ok && response.status !== 404) throw new Error(`[revenuecat] customer delete failed: ${response.status}`);
+    },
   };
+}
+
+/**
+ * REVENUECAT_SANDBOX_ACCOUNTS: the account ids whose test purchases give a real plan, comma-separated. Meant
+ * for the App Review demo account and the owner's own testers; everyone else's test purchases give nothing.
+ */
+export function sandboxAccountsFromEnv(env: Record<string, string | undefined> = process.env): ReadonlySet<string> {
+  const ids = (env.REVENUECAT_SANDBOX_ACCOUNTS ?? "").split(/[\s,]+/).map((id) => id.toLowerCase());
+  return new Set(ids.filter((id) => UUID.test(id)));
 }
 
 // ---- Webhook ---------------------------------------------------------------------------------
@@ -258,7 +289,18 @@ export type WebhookResult = { status: number; body: string };
  */
 export async function handleWebhook(
   input: { authorization: string | null; body: unknown },
-  deps: { secret: string | undefined; api: RevenueCatApi; store: SubscriptionStore },
+  deps: {
+    secret: string | undefined;
+    api: RevenueCatApi;
+    store: SubscriptionStore;
+    /** Accounts whose test purchases count (sandboxAccountsFromEnv). */
+    sandboxAccounts?: ReadonlySet<string>;
+    /**
+     * False for a deleted account. An Apple plan can renew after its account is deleted; reading it would
+     * bring the customer back in RevenueCat, and saving it would fail on the missing account.
+     */
+    accountExists?: (userId: string) => Promise<boolean>;
+  },
 ): Promise<WebhookResult> {
   if (!deps.secret?.trim()) return { status: 503, body: "Not configured" };
   if (!isWebhookAuthorized(input.authorization, deps.secret)) return { status: 401, body: "Unauthorized" };
@@ -271,7 +313,9 @@ export async function handleWebhook(
   if (!users.length) return { status: 200, body: "No account" };
 
   for (const userId of users) {
-    const sub = subscriptionFromCustomer(userId, await deps.api.customer(userId));
+    if (deps.accountExists && !(await deps.accountExists(userId))) continue;
+    const allowSandbox = deps.sandboxAccounts?.has(userId.toLowerCase()) ?? false;
+    const sub = subscriptionFromCustomer(userId, await deps.api.customer(userId), { allowSandbox });
     if (sub) await deps.store.save(sub);
     else await deps.store.remove(userId);
   }

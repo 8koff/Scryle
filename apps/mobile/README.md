@@ -72,7 +72,8 @@ Only accounts with a password can use it; normal accounts have none.
 1. **Supabase → Authentication → Users → Add user → Create new user**: an email you own (for example a `+review`
    address), a long random password, and tick **Auto Confirm User**.
 2. **App Store Connect → your app → App Review Information → Sign-in required**: enter that email and password.
-3. Give the account a few swaps, or keep `APPLE_ALLOW_SANDBOX=yes` while Apple reviews so test purchases add swaps.
+3. Add the account's id (Supabase → Authentication → Users → UID) to `REVENUECAT_SANDBOX_ACCOUNTS` in Vercel, so the
+   reviewer's test purchase gives a plan. Test purchases from accounts not on that list give nothing.
 4. After review, change the password or delete the user.
 
 ## Apple in-app purchase: owner setup
@@ -94,8 +95,8 @@ The app sells the same 3 packs as the website, through Apple. Buying does not wo
 5. **Vercel → Environment Variables** (production):
    - `APPLE_BUNDLE_ID` = `io.scryapp.app`
    - `APPLE_APP_ID` = the app's numeric Apple ID (App Information → Apple ID)
-   - `APPLE_ALLOW_SANDBOX` = `yes` only while testing or while Apple reviews the app. Test purchases are free.
-   - `APPLE_SANDBOX_USERS` (optional) = account ids allowed to use test purchases, comma-separated. Empty = everyone.
+   - `REVENUECAT_SANDBOX_ACCOUNTS` = account ids whose test purchases give a plan, comma-separated (the App Review
+     demo account and your own testers). Test purchases are free, so nobody else's count.
 6. **Users and Access → Sandbox → Test Accounts**: make a sandbox tester to try buying on your iPhone.
 
 How it works: Apple charges → the app sends Apple's signed transaction to `/api/apple/purchase` → the server checks Apple's

@@ -1,8 +1,16 @@
-import { getAccounts } from "@/lib/server/accounts";
-import { handleWebhook, revenueCatApiFromEnv } from "@/lib/server/subscriptions";
+import { getAccounts, getAdminDb } from "@/lib/server/accounts";
+import { handleWebhook, revenueCatApiFromEnv, sandboxAccountsFromEnv } from "@/lib/server/subscriptions";
 
 /** Bigger than any RevenueCat event; anything larger isn't one. */
 const MAX_BODY_BYTES = 64_000;
+
+/** Whether the account still exists. Throws when Supabase can't say, so RevenueCat retries the event. */
+async function accountExists(userId: string): Promise<boolean> {
+  const { data, error } = await getAdminDb().auth.admin.getUserById(userId);
+  if (data.user) return true;
+  if (error?.status === 404) return false;
+  throw new Error(`[revenuecat] account check failed: ${error?.message ?? "no answer"}`);
+}
 
 /**
  * RevenueCat → us (set up in RevenueCat → Integrations → Webhooks, with an Authorization value that
@@ -22,7 +30,13 @@ export async function POST(request: Request) {
   try {
     const result = await handleWebhook(
       { authorization: request.headers.get("authorization"), body },
-      { secret: process.env.REVENUECAT_WEBHOOK_AUTH, api: revenueCatApiFromEnv(), store: getAccounts().subscriptions },
+      {
+        secret: process.env.REVENUECAT_WEBHOOK_AUTH,
+        api: revenueCatApiFromEnv(),
+        store: getAccounts().subscriptions,
+        sandboxAccounts: sandboxAccountsFromEnv(),
+        accountExists,
+      },
     );
     return new Response(result.body, { status: result.status });
   } catch (error) {

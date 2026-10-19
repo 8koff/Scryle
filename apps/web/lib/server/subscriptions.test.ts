@@ -6,6 +6,8 @@ import {
   handleWebhook,
   isWebhookAuthorized,
   planInfo,
+  revenueCatApiFromEnv,
+  sandboxAccountsFromEnv,
   subscriptionFromCustomer,
   type Customer,
   type RevenueCatApi,
@@ -30,10 +32,11 @@ const sub = (over: Partial<Subscription> = {}): Subscription => ({
   ...over,
 });
 
+/** RevenueCat marks every purchase real or test; these are real unless a test says otherwise. */
 const customer = (subs: Customer["subscriber"]["subscriptions"], entitled?: string): Customer => ({
   subscriber: {
     entitlements: entitled ? { swaps: { product_identifier: entitled } } : {},
-    subscriptions: subs,
+    subscriptions: Object.fromEntries(Object.entries(subs).map(([id, s]) => [id, { is_sandbox: false, ...s }])),
   },
 });
 
@@ -79,6 +82,36 @@ describe("subscriptionFromCustomer", () => {
       }),
     );
     expect(result?.tier).toBe("starter");
+  });
+
+  it("ignores test purchases, unless the account is allowed to test", () => {
+    const test = customer(
+      { "io.scryapp.sub.pro.monthly": { purchase_date: "2026-10-03T12:00:00Z", expires_date: "2026-11-03T12:00:00Z", store: "app_store", is_sandbox: true } },
+      "io.scryapp.sub.pro.monthly",
+    );
+    expect(subscriptionFromCustomer(USER, test)).toBeNull();
+    expect(subscriptionFromCustomer(USER, test, { allowSandbox: true })?.tier).toBe("pro");
+  });
+
+  it("treats a purchase that isn't marked real as a test", () => {
+    const unmarked: Customer = {
+      subscriber: {
+        entitlements: { swaps: { product_identifier: "io.scryapp.sub.pro.monthly" } },
+        subscriptions: { "io.scryapp.sub.pro.monthly": { purchase_date: "2026-10-03T12:00:00Z", expires_date: "2026-11-03T12:00:00Z", store: "app_store" } },
+      },
+    };
+    expect(subscriptionFromCustomer(USER, unmarked)).toBeNull();
+  });
+
+  it("a test purchase doesn't hide a real plan bought alongside it", () => {
+    const both = customer(
+      {
+        "io.scryapp.sub.pro.monthly": { purchase_date: "2026-10-03T12:00:00Z", expires_date: "2026-11-03T12:00:00Z", store: "app_store", is_sandbox: true },
+        "io.scryapp.sub.starter.monthly": { purchase_date: "2026-10-01T12:00:00Z", expires_date: "2026-11-01T12:00:00Z", store: "rc_billing" },
+      },
+      "io.scryapp.sub.pro.monthly",
+    );
+    expect(subscriptionFromCustomer(USER, both)?.tier).toBe("starter");
   });
 
   it("is null when nothing bought is a plan", () => {
@@ -221,8 +254,73 @@ describe("RevenueCat webhook", () => {
     expect(await store.get(OTHER)).toBeNull();
   });
 
+  it("gives a test purchase a plan only for accounts on the allow-list", async () => {
+    const test = customer(
+      { "io.scryapp.sub.pro.monthly": { purchase_date: "2026-10-03T12:00:00Z", expires_date: "2026-11-03T12:00:00Z", store: "app_store", is_sandbox: true } },
+      "io.scryapp.sub.pro.monthly",
+    );
+    const store = createMemorySubscriptionStore([sub({ userId: OTHER })]);
+    const body = event({ type: "TRANSFER", transferred_from: [OTHER], transferred_to: [USER] });
+    await handleWebhook(
+      { authorization: SECRET, body },
+      { secret: SECRET, api: api({ [USER]: test, [OTHER]: test }), store, sandboxAccounts: new Set([USER]) },
+    );
+    expect((await store.get(USER))?.tier).toBe("pro");
+    expect(await store.get(OTHER)).toBeNull();
+  });
+
+  it("skips deleted accounts without reading RevenueCat", async () => {
+    const rc = api({ [USER]: pro });
+    const store = createMemorySubscriptionStore();
+    const result = await handleWebhook(
+      { authorization: SECRET, body: event({ app_user_id: USER }) },
+      { secret: SECRET, api: rc, store, accountExists: async () => false },
+    );
+    expect(result.status).toBe(200);
+    expect(rc.customer).not.toHaveBeenCalled();
+    expect(await store.get(USER)).toBeNull();
+  });
+
+  it("is retried when it can't tell whether the account exists", async () => {
+    const run = handleWebhook(
+      { authorization: SECRET, body: event({ app_user_id: USER }) },
+      { secret: SECRET, api: api({ [USER]: pro }), store: createMemorySubscriptionStore(), accountExists: async () => Promise.reject(new Error("db down")) },
+    );
+    await expect(run).rejects.toThrow("db down");
+  });
+
   it("rejects a body that isn't an event", async () => {
     const result = await handleWebhook({ authorization: SECRET, body: { hello: 1 } }, { secret: SECRET, api: api({}), store: createMemorySubscriptionStore() });
     expect(result.status).toBe(400);
+  });
+});
+
+describe("sandbox allow-list", () => {
+  it("reads account ids from REVENUECAT_SANDBOX_ACCOUNTS, ignoring anything that isn't one", () => {
+    const ids = sandboxAccountsFromEnv({ REVENUECAT_SANDBOX_ACCOUNTS: ` ${USER.toUpperCase()}, nope,${OTHER} ` });
+    expect([...ids].sort()).toEqual([OTHER, USER].sort());
+    expect(sandboxAccountsFromEnv({}).size).toBe(0);
+  });
+});
+
+describe("RevenueCat customer delete", () => {
+  const reply = (status: number) => vi.fn(async () => new Response(null, { status }));
+
+  it("deletes the customer with the secret key", async () => {
+    const doFetch = reply(200);
+    await revenueCatApiFromEnv({ REVENUECAT_SECRET_API_KEY: "test-only-key" }, doFetch).deleteCustomer(USER);
+    expect(doFetch).toHaveBeenCalledWith(
+      `https://api.revenuecat.com/v1/subscribers/${USER}`,
+      expect.objectContaining({ method: "DELETE", headers: { Authorization: "Bearer test-only-key" } }),
+    );
+  });
+
+  it("counts a customer RevenueCat never had as deleted", async () => {
+    await expect(revenueCatApiFromEnv({ REVENUECAT_SECRET_API_KEY: "test-only-key" }, reply(404)).deleteCustomer(USER)).resolves.toBeUndefined();
+  });
+
+  it("throws when RevenueCat fails or the key is missing, so nothing else is deleted", async () => {
+    await expect(revenueCatApiFromEnv({ REVENUECAT_SECRET_API_KEY: "test-only-key" }, reply(500)).deleteCustomer(USER)).rejects.toThrow(/500/);
+    await expect(revenueCatApiFromEnv({}, reply(200)).deleteCustomer(USER)).rejects.toThrow(/isn't set/);
   });
 });
