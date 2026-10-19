@@ -115,4 +115,3 @@ RevenueCat and saves the plan → the app asks the server until the plan shows u
 A plan is changed where it was bought (the app sends website plans to the website, and the other way round), so
 nobody pays twice. Deleting an account cancels a website plan; an Apple plan can only be cancelled by its owner in
 Apple's settings, and both delete screens say so. An upgrade starts a fresh month with the new plan's full swaps.
-

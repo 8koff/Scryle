@@ -61,4 +61,3 @@ describe("PlansScreen", () => {
     expect(screen.queryByText("Manage on the website")).toBeNull();
   });
 });
-
