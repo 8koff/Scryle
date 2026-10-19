@@ -62,8 +62,11 @@ Apple / Stripe ──► RevenueCat ──webhook──► /api/revenuecat/webho
   edited).
 - **Months for yearly plans** are counted from the subscription's start date. The current month's row is created the
   first time it's needed (balance check or spend), so no new cron job is required.
-- **Upgrades** (e.g. Starter → Pro) apply at once: this month's `granted` goes up to the new allowance, `used` stays.
-  **Downgrades** apply at the next renewal, as Apple and Stripe already do.
+- **Upgrades** (e.g. Starter → Pro) apply at once. Apple refunds the unused part of the old plan and starts a new
+  billing period, so the new plan starts a fresh month with its full allowance; what was used on the old plan isn't
+  carried over (owner's choice, 2026-10-19). **Downgrades** apply at the next renewal, as Apple and Stripe already do.
+- **Promotional plans** (granted in RevenueCat's dashboard, e.g. for App Review's demo account) give Starter (owner's
+  choice, 2026-10-19).
 - **Cancelling** keeps the plan until the period ends (RevenueCat `CANCELLATION`), then `EXPIRATION` stops new
   allowances. **Refunds** end the plan and take back what's left of the current month's allowance.
 

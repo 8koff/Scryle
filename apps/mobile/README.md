@@ -73,32 +73,46 @@ Only accounts with a password can use it; normal accounts have none.
    address), a long random password, and tick **Auto Confirm User**.
 2. **App Store Connect → your app → App Review Information → Sign-in required**: enter that email and password.
 3. Add the account's id (Supabase → Authentication → Users → UID) to `REVENUECAT_SANDBOX_ACCOUNTS` in Vercel, so the
-   reviewer's test purchase gives a plan. Test purchases from accounts not on that list give nothing.
+   reviewer's test purchase gives a plan. Test purchases from accounts not on that list give nothing. To let the
+   reviewer in without buying, also grant the account the `swaps` entitlement in RevenueCat (a promotional plan): it
+   gives Starter.
 4. After review, change the password or delete the user.
 
-## Apple in-app purchase: owner setup
+## Subscriptions (RevenueCat): owner setup
 
-The app sells the same 3 packs as the website, through Apple. Buying does not work in Expo Go; use a development build or TestFlight.
+The app sells the same plans as the website (Starter, Plus, Pro, monthly or yearly) through Apple, with RevenueCat in
+between. The full plan and the owner's decisions are in `docs/plans/subscriptions-revenuecat.md`. Buying doesn't work
+in Expo Go; use a development build or TestFlight.
 
 1. **App Store Connect → Agreements, Tax, and Banking**: sign the Paid Apps agreement and add bank and tax details.
 2. **Small Business Program**: join it (Apple's fee drops from 30% to 15%; the margins assume 15%).
-3. **App Store Connect → your app → In-App Purchases**: create 3 **Consumable** products:
+3. **App Store Connect → your app → Subscriptions**: one subscription group "Scryle" with six auto-renewable
+   subscriptions:
 
-   | Product ID | Price | Name |
-   |---|---|---|
-   | `io.scryapp.credits.starter` | $4.99 | 25 swaps |
-   | `io.scryapp.credits.plus` | $9.99 | 60 swaps |
-   | `io.scryapp.credits.pro` | $19.99 | 150 swaps |
+   | Product ID | Price |
+   |---|---|
+   | `io.scryapp.sub.starter.monthly` | $4.99 a month |
+   | `io.scryapp.sub.starter.yearly` | $49.99 a year |
+   | `io.scryapp.sub.plus.monthly` | $9.99 a month |
+   | `io.scryapp.sub.plus.yearly` | $99.99 a year |
+   | `io.scryapp.sub.pro.monthly` | $19.99 a month |
+   | `io.scryapp.sub.pro.yearly` | $199.99 a year |
 
-4. **App Store Connect → your app → App Information → App Store Server Notifications**: set Production and Sandbox URLs to
-   `https://scryle.app/api/apple/notifications`, version 2. Refunds then take the swaps back.
-5. **Vercel → Environment Variables** (production):
-   - `APPLE_BUNDLE_ID` = `io.scryapp.app`
-   - `APPLE_APP_ID` = the app's numeric Apple ID (App Information → Apple ID)
-   - `REVENUECAT_SANDBOX_ACCOUNTS` = account ids whose test purchases give a plan, comma-separated (the App Review
-     demo account and your own testers). Test purchases are free, so nobody else's count.
-6. **Users and Access → Sandbox → Test Accounts**: make a sandbox tester to try buying on your iPhone.
+4. **RevenueCat**: add the iOS app with its In-App Purchase key, an entitlement `swaps` on all six products, and one
+   offering `default`. Point App Store Server Notifications at RevenueCat (its iOS app settings show the address).
+5. **RevenueCat → Integrations → Webhooks**: `https://scryle.app/api/revenuecat/webhook`, with the same Authorization
+   value as `REVENUECAT_WEBHOOK_AUTH`.
+6. **Keys** (names only; values never go in git):
+   - App: `EXPO_PUBLIC_REVENUECAT_IOS_KEY` (RevenueCat's public iOS key) in `apps/mobile/.env.local` and in EAS.
+   - Vercel: `REVENUECAT_SECRET_API_KEY`, `REVENUECAT_WEBHOOK_AUTH`, and `REVENUECAT_SANDBOX_ACCOUNTS` = account ids
+     whose test purchases give a plan, comma-separated (the App Review demo account and your own testers). Test
+     purchases are free, so nobody else's count.
+7. **Users and Access → Sandbox → Test Accounts**: make a sandbox tester to try buying on your iPhone. Put your own
+   Scryle account's id in `REVENUECAT_SANDBOX_ACCOUNTS` first, or the test purchase gives nothing.
 
-How it works: Apple charges → the app sends Apple's signed transaction to `/api/apple/purchase` → the server checks Apple's
-signature and that the purchase belongs to this account, then adds the swaps once → only then does the app finish the
-transaction with Apple. If anything fails in between, iOS keeps the transaction and the app sends it again on the next start.
+How it works: Apple charges → RevenueCat records it and calls the webhook → the server re-reads the customer from
+RevenueCat and saves the plan → the app asks the server until the plan shows up. Swaps only ever come from the server.
+A plan is changed where it was bought (the app sends website plans to the website, and the other way round), so
+nobody pays twice. Deleting an account cancels a website plan; an Apple plan can only be cancelled by its owner in
+Apple's settings, and both delete screens say so. An upgrade starts a fresh month with the new plan's full swaps.
+
