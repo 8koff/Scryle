@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { MAX_NAME_LENGTH } from "@/lib/account/account-store";
+import { subscriptionManagementUrl } from "@/lib/account/subscribe";
 import { account, useAccount } from "@/lib/account/use-account";
 import { Avatar } from "./avatar";
 import { BuySheet } from "./buy-sheet";
@@ -69,7 +70,26 @@ export function AccountPage() {
   const me = useAccount();
   const router = useRouter();
   const [isBuying, setIsBuying] = useState(false);
+  const [isManaging, setIsManaging] = useState(false);
+  const [manageError, setManageError] = useState<string | null>(null);
   if (me.status !== "signed-in") return null;
+
+  const managePlan = async () => {
+    if (!me.plan || isManaging) return;
+    setIsManaging(true);
+    setManageError(null);
+    try {
+      const url = await subscriptionManagementUrl(me.userId, me.plan.store);
+      const current = account.getSnapshot();
+      if (current.status !== "signed-in" || current.userId !== me.userId) return;
+      if (url) window.location.assign(url);
+      else setManageError("Couldn't open subscription settings. Please try again or use the link in your billing email.");
+    } catch {
+      setManageError("Couldn't open subscription settings. Check your connection and try again.");
+    } finally {
+      setIsManaging(false);
+    }
+  };
 
   const signOut = async () => {
     await account.signOut();
@@ -101,11 +121,21 @@ export function AccountPage() {
             <span className="text-[1.4rem] font-semibold tabular-nums">{me.credits ?? "…"}</span> left
           </p>
           <button type="button" onClick={() => setIsBuying(true)} className={`${button} bg-accent text-on-accent`}>
-            Get more
+            {me.plan ? "Change plan" : "Subscribe"}
           </button>
         </div>
         {/* Invites hidden until their reward is decided: free pictures no longer count with plans (docs/plans/subscriptions-revenuecat.md). */}
       </Row>
+
+      {me.plan && (
+        <Row label="Subscription">
+          <button type="button" disabled={isManaging} onClick={() => void managePlan()} className={`${button} border border-line hover:border-fg`}>
+            {isManaging ? "Opening…" : "Manage subscription"}
+          </button>
+          <p className="mt-2 text-[13px] text-muted">Cancel or update billing with the store where you subscribed. Deleting your Scryle account does not cancel your subscription.</p>
+          {manageError && <p role="alert" className="mt-2 text-[14px] text-accent-ink">{manageError}</p>}
+        </Row>
+      )}
 
       <Row label="Session">
         <button type="button" onClick={signOut} className={`${button} border border-line hover:border-fg`}>

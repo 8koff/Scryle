@@ -54,6 +54,20 @@ export async function loadWebOffers(userId: string): Promise<WebOffers> {
 
 export type SubscribeResult = { kind: "active" } | { kind: "pending" } | { kind: "cancelled" } | { kind: "error"; message: string };
 
+/** RevenueCat provides the customer's portal for cancelling or updating web billing. */
+export async function subscriptionManagementUrl(userId: string, store: string): Promise<string | null> {
+  if (store === "app_store") return "https://apps.apple.com/account/subscriptions";
+  const purchases = await sdkFor(userId);
+  if (!purchases) return null;
+  const url = (await purchases.getCustomerInfo()).managementURL;
+  if (!url || purchases.getAppUserId() !== userId) return null;
+  try {
+    return new URL(url).protocol === "https:" ? url : null;
+  } catch {
+    return null;
+  }
+}
+
 /** How long to wait for RevenueCat → our server after the payment. Usually a few seconds. */
 const CONFIRM_MS = 30_000;
 const CONFIRM_EVERY_MS = 2_000;
