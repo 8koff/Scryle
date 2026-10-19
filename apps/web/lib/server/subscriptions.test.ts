@@ -114,6 +114,21 @@ describe("subscriptionFromCustomer", () => {
     expect(subscriptionFromCustomer(USER, both)?.tier).toBe("starter");
   });
 
+  it("gives a promotional grant (App Review's demo account) the Starter plan", () => {
+    const promo = customer(
+      { rc_promo_swaps_monthly: { purchase_date: "2026-10-03T12:00:00Z", expires_date: "2026-11-03T12:00:00Z", store: "promotional" } },
+      "rc_promo_swaps_monthly",
+    );
+    const result = subscriptionFromCustomer(USER, promo);
+    expect(result).toMatchObject({ tier: "starter", period: "monthly", store: "promotional" });
+    expect(currentAllowance(result, at("2026-10-10T00:00:00Z"))?.granted).toBe(25);
+  });
+
+  it("gives a lifetime promotional grant (no end date) no plan", () => {
+    const lifetime = customer({ rc_promo_swaps_lifetime: { purchase_date: "2026-10-03T12:00:00Z", expires_date: null, store: "promotional" } });
+    expect(subscriptionFromCustomer(USER, lifetime)).toBeNull();
+  });
+
   it("is null when nothing bought is a plan", () => {
     expect(subscriptionFromCustomer(USER, customer({}))).toBeNull();
   });

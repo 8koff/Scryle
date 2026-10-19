@@ -127,7 +127,8 @@ export function AccountPage() {
         {/* Invites hidden until their reward is decided: free pictures no longer count with plans (docs/plans/subscriptions-revenuecat.md). */}
       </Row>
 
-      {me.plan && (
+      {/* A promotional plan (granted in RevenueCat, e.g. for App Review) has no billing to manage. */}
+      {me.plan && me.plan.store !== "promotional" && (
         <Row label="Subscription">
           <button type="button" disabled={isManaging} onClick={() => void managePlan()} className={`${button} border border-line hover:border-fg`}>
             {isManaging ? "Opening…" : "Manage subscription"}

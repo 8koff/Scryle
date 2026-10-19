@@ -1,5 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
-import { allowanceMonthStart, getPlanTier, planForProduct, type PlanInfo, type PlanPeriod, type PlanTierId } from "@retrofit/core";
+import { allowanceMonthStart, getPlanTier, planForProduct, type PlanInfo, type PlanPeriod, type PlanTier, type PlanTierId } from "@retrofit/core";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
@@ -42,12 +42,27 @@ export function hasAccess(sub: Subscription, now: Date): boolean {
   return sub.expiresAt > now;
 }
 
+/**
+ * RevenueCat's promotional grants: free plans given in its dashboard (e.g. for App Review's demo account), with
+ * product ids like `rc_promo_swaps_monthly`. They give Starter (owner's choice, 2026-10-19). A lifetime grant
+ * has no end date, so it gives no plan.
+ */
+const PROMO_PREFIX = "rc_promo_";
+const PROMO_TIER: PlanTierId = "starter";
+
+/** The plan a product id gives: a store plan (`io.scryapp.sub.…`) or a promotional grant. */
+export function planForSubscription(productId: string): { tier: PlanTier; period: PlanPeriod } | undefined {
+  if (!productId.startsWith(PROMO_PREFIX)) return planForProduct(productId);
+  const tier = getPlanTier(PROMO_TIER);
+  return tier && { tier, period: productId.endsWith("_yearly") ? "yearly" : "monthly" };
+}
+
 /** This month's allowance: which month, and how many swaps the plan gives in it. */
 export type Allowance = { monthStart: Date; granted: number };
 
 export function currentAllowance(sub: Subscription | null, now: Date): Allowance | null {
   if (!sub || !hasAccess(sub, now)) return null;
-  const plan = planForProduct(sub.productId);
+  const plan = planForSubscription(sub.productId);
   if (!plan) return null;
   return { monthStart: allowanceMonthStart(sub.periodStart, now), granted: plan.tier.swapsPerMonth };
 }
@@ -186,7 +201,7 @@ export type Customer = z.infer<typeof CustomerSchema>;
 export function subscriptionFromCustomer(userId: string, customer: Customer, { allowSandbox = false } = {}): Subscription | null {
   const { entitlements, subscriptions } = customer.subscriber;
   const known = Object.entries(subscriptions).flatMap(([productId, s]) => {
-    const plan = planForProduct(productId);
+    const plan = planForSubscription(productId);
     if (!plan || !s.expires_date) return [];
     // Fails closed: a purchase RevenueCat doesn't mark as real (is_sandbox: false) counts as a test.
     if (s.is_sandbox !== false && !allowSandbox) return [];
