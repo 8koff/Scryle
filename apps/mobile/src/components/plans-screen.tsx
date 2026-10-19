@@ -30,6 +30,8 @@ export function PlansScreen({ mode }: Props) {
   const [tier, setTier] = useState<PlanTierId>(current?.tier ?? "pro");
   const [busy, setBusy] = useState<"buy" | "restore" | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // Bumped by "Try again" to load the plans once more.
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let isLive = true;
@@ -37,7 +39,12 @@ export function PlansScreen({ mode }: Props) {
     return () => {
       isLive = false;
     };
-  }, []);
+  }, [attempt]);
+
+  const retry = () => {
+    setOffers(null);
+    setAttempt((n) => n + 1);
+  };
 
   const list = offers && offers.status !== "unavailable" ? offers.offers : [];
   const shown = list.filter((o) => o.period === period);
@@ -103,7 +110,14 @@ export function PlansScreen({ mode }: Props) {
         </View>
 
         {offers === null ? <ActivityIndicator color={colors.fg} style={styles.loading} /> : null}
-        {offers?.status === "unavailable" ? <Text style={styles.notice}>{offers.message}</Text> : null}
+        {offers?.status === "unavailable" ? (
+          <View style={styles.unavailable}>
+            <Text style={styles.notice}>{offers.message}</Text>
+            <Pressable accessibilityRole="button" onPress={retry} style={styles.retry}>
+              <Text style={styles.restoreText}>Try again</Text>
+            </Pressable>
+          </View>
+        ) : null}
         {offers?.status === "preview" ? <Text style={styles.small}>Preview: {offers.message} Showing the website&apos;s prices.</Text> : null}
 
         <View style={styles.plans}>
@@ -234,6 +248,8 @@ const styles = StyleSheet.create({
   notice: { fontFamily: fonts.medium, fontSize: 15, lineHeight: 21, color: colors.fg },
   small: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 17, color: colors.muted },
   restore: { alignSelf: "center", paddingVertical: space.xs },
+  unavailable: { gap: space.xs },
+  retry: { alignSelf: "flex-start", paddingVertical: space.xs },
   restoreText: { fontFamily: fonts.medium, fontSize: 15, color: colors.fg },
   signedIn: { fontFamily: fonts.regular, fontSize: 13, color: colors.muted, textAlign: "center" },
   link: { fontFamily: fonts.medium, color: colors.accentInk },
