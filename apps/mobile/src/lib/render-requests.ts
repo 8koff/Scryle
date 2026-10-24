@@ -29,7 +29,7 @@ export type RenderRequestDeps = {
 const EMPTY: readonly RenderRequest[] = [];
 const keyFor = (owner: string) => `retrofit:render-requests:${owner}`;
 const error = (message: string, code: ApiErrorCode = "render_pending"): Answer<RenderStart> => ({ status: "error", message, code });
-const pending = () => error("Your swap request is saved. Check My swaps or try again to recover it without starting another.");
+const pending = () => error("Your swap request is saved. Check My pictures or try again to recover it without starting another.");
 const isStart = (value: unknown, id: string): value is RenderStart => {
   if (!value || typeof value !== "object") return false;
   const v = value as Partial<RenderStart>;

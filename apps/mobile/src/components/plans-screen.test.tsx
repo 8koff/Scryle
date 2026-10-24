@@ -13,7 +13,8 @@ jest.mock("@/lib/purchases", () => ({
   restorePlan: jest.fn(),
 }));
 jest.mock("@/lib/use-account", () => ({ useAccount: () => mockAccount.current }));
-jest.mock("expo-router", () => ({ router: { back: jest.fn(), push: jest.fn() } }));
+const mockPush = jest.fn();
+jest.mock("expo-router", () => ({ router: { back: jest.fn(), push: (...args: unknown[]) => mockPush(...args) } }));
 jest.mock("expo-web-browser", () => ({ openBrowserAsync: (url: string) => mockOpenBrowser(url) }));
 jest.mock("@/lib/config", () => ({ API_URL: "https://scryle.test" }));
 
@@ -59,5 +60,13 @@ describe("PlansScreen", () => {
     fireEvent.press(screen.getByLabelText(/^Pro:/));
     expect(await screen.findByText(/Switch to Pro/)).toBeTruthy();
     expect(screen.queryByText("Manage on the website")).toBeNull();
+  });
+
+  test("behind the paywall, saved pictures are one tap away", async () => {
+    mockLoadOffers.mockResolvedValueOnce(ready);
+    await render(<PlansScreen mode="gate" />);
+
+    fireEvent.press(await screen.findByText("My pictures"));
+    expect(mockPush).toHaveBeenCalledWith("/my-pictures");
   });
 });

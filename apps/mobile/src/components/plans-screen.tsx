@@ -96,7 +96,7 @@ export function PlansScreen({ mode }: Props) {
         )}
 
         <Text style={styles.title}>{mode === "gate" ? "Pick a plan\nto start swapping" : "Change your plan"}</Text>
-        <Text style={styles.body}>Each swap restyles one photo with real products you can buy. Your swaps reset every month.</Text>
+        <Text style={styles.body}>Each picture restyles your photo with real products you can buy. Your pictures reset every month.</Text>
 
         <View style={styles.toggle} accessibilityRole="tablist">
           {(["monthly", "yearly"] as const).map((p) => (
@@ -132,7 +132,7 @@ export function PlansScreen({ mode }: Props) {
                 key={o.productId}
                 accessibilityRole="radio"
                 accessibilityState={{ checked: isOn }}
-                accessibilityLabel={`${o.tier.label}: ${o.tier.swapsPerMonth} swaps a month, ${o.priceString} a ${PER[o.period]}${isCurrent(o) ? ". Your current plan" : ""}`}
+                accessibilityLabel={`${o.tier.label}: ${o.tier.swapsPerMonth} pictures a month, ${o.priceString} a ${PER[o.period]}${isCurrent(o) ? ". Your current plan" : ""}`}
                 onPress={() => setTier(o.tier.id)}
                 style={[styles.plan, isOn && styles.planOn]}
               >
@@ -140,7 +140,7 @@ export function PlansScreen({ mode }: Props) {
                 <View style={styles.fill}>
                   <View style={styles.countRow}>
                     <Text style={styles.count}>{o.tier.swapsPerMonth}</Text>
-                    <Text style={styles.countUnit}>swaps a month</Text>
+                    <Text style={styles.countUnit}>pictures a month</Text>
                   </View>
                   <Text style={styles.planName}>
                     {o.tier.label}
@@ -188,7 +188,7 @@ export function PlansScreen({ mode }: Props) {
         />
         {/* Apple requires the renewal terms next to the button. */}
         <Text style={styles.small}>
-          Renews automatically every {PER[period]} until you cancel. Cancel anytime in Settings › your name › Subscriptions. Swaps you
+          Renews automatically every {PER[period]} until you cancel. Cancel anytime in Settings › your name › Subscriptions. Pictures you
           don&apos;t use don&apos;t carry over to the next month.
         </Text>
         <Pressable accessibilityRole="button" disabled={busy !== null} onPress={() => void onRestore()} style={styles.restore}>
@@ -200,6 +200,11 @@ export function PlansScreen({ mode }: Props) {
             Signed in as {me.email ?? me.name ?? "you"}.{" "}
             <Text style={styles.link} accessibilityRole="link" onPress={() => router.push("/manage-account")}>
               Account
+            </Text>
+            {"  ·  "}
+            {/* Saved pictures stay open without a plan (app/my-pictures.tsx). */}
+            <Text style={styles.link} accessibilityRole="link" onPress={() => router.push("/my-pictures")}>
+              My pictures
             </Text>
           </Text>
         ) : null}

@@ -14,7 +14,7 @@ import { colors, display, fonts, radius, space } from "@/theme";
 /** What Allow means, one short line each. */
 const POINTS = [
   { title: "Read by our AI partners", body: "They find what you can swap and make your new picture." },
-  { title: "Only used for your swaps", body: "Never sold, and never used to train AI." },
+  { title: "Only used for your pictures", body: "Never sold, and never used to train AI." },
   { title: "Your choice", body: "Say no and nothing is sent. Scryle just can't read photos without it." },
 ] as const;
 

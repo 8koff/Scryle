@@ -8,6 +8,7 @@ import { ShopLook } from "@/components/shop-look";
 import { reopenSaved } from "@/lib/builds";
 import { loadLiveProducts, type LiveProduct } from "@/lib/store-search";
 import { productIdsOf, swapItems } from "@/lib/swap-items";
+import { useAccount } from "@/lib/use-account";
 import { findRender, pictureSource } from "@/lib/use-renders";
 import { colors, fonts, radius, space } from "@/theme";
 
@@ -17,6 +18,9 @@ import { colors, fonts, radius, space } from "@/theme";
  */
 export default function SwapViewer() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const me = useAccount();
+  // Without a plan the picture still opens (to look at and shop); making new ones needs a plan.
+  const hasPlan = me.status === "signed-in" && Boolean(me.plan);
   const render = typeof id === "string" ? findRender(id) : undefined;
   const [isOpening, setIsOpening] = useState(false);
   const loaded = useSwapProducts(render?.jobId, render?.selections ?? []);
@@ -25,7 +29,7 @@ export default function SwapViewer() {
     return (
       <View style={styles.missing}>
         <Stack.Screen options={{ title: "Swap" }} />
-        <Text style={styles.body}>This swap isn&apos;t loaded. Go back to My swaps and pull down to refresh.</Text>
+        <Text style={styles.body}>This swap isn&apos;t loaded. Go back to My pictures and pull down to refresh.</Text>
       </View>
     );
   }
@@ -51,7 +55,7 @@ export default function SwapViewer() {
       ) : (
         <ShopLook products={items.products} />
       )}
-      {render.canReopen ? (
+      {render.canReopen && hasPlan ? (
         <Button
           label="Swap more"
           isBusy={isOpening}

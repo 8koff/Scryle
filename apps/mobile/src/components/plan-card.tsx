@@ -19,7 +19,7 @@ export function PlanCard() {
     return (
       <View style={styles.card}>
         <Text style={styles.title}>No plan yet</Text>
-        <Text style={styles.body}>Pick a plan to start swapping.</Text>
+        <Text style={styles.body}>Pick a plan to start making pictures.</Text>
         <Button label="See plans" onPress={() => router.back()} />
       </View>
     );
@@ -43,11 +43,11 @@ export function PlanCard() {
           Manage
         </Text>
       </View>
-      <View style={styles.meter} accessibilityLabel={`${left} of ${plan.swapsPerMonth} swaps left this month`}>
+      <View style={styles.meter} accessibilityLabel={`${left} of ${plan.swapsPerMonth} pictures left this month`}>
         <View style={[styles.meterFill, { width: `${Math.min(100, (left / Math.max(1, plan.swapsPerMonth)) * 100)}%` }]} />
       </View>
       <Text style={styles.body}>
-        <Text style={styles.strong}>{left}</Text> of {plan.swapsPerMonth} swaps left this month
+        <Text style={styles.strong}>{left}</Text> of {plan.swapsPerMonth} pictures left this month
       </Text>
       <Text style={[styles.small, plan.hasBillingIssue && styles.warn]}>{status}</Text>
       <Button label="Change plan" variant="quiet" onPress={() => router.push("/buy")} />

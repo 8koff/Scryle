@@ -1,3 +1,4 @@
+import { planBilling } from "@retrofit/core";
 import { useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -57,10 +58,21 @@ export default function Account() {
     await signOut();
   };
 
+  // Deleting cancels a website plan (on the server) but can't cancel an Apple one: only its owner can.
+  const billing = state.plan?.willRenew ? planBilling(state.plan) : null;
   const confirmDelete = () =>
     Alert.alert(
       "Delete your account?",
-      "This deletes your account, your saved swaps, your share links and any swaps you have left. It can't be undone. It doesn't cancel a subscription: cancel that first under Manage, or you'll keep being charged.",
+      [
+        "This deletes your account, your saved pictures, your share links and any pictures you have left this month. It can't be undone.",
+        billing === "apple"
+          ? "Your plan renews through Apple. Deleting your account doesn't cancel it. Cancel it first under Manage, or Apple keeps charging you."
+          : billing === "web"
+            ? "This also cancels your plan, so it won't renew."
+            : "",
+      ]
+        .filter(Boolean)
+        .join(" "),
       [
         { text: "Cancel", style: "cancel" },
         { text: "Delete", style: "destructive", onPress: () => void deleteAccount() },

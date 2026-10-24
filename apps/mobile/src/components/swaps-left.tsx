@@ -12,7 +12,7 @@ export function SwapsLeftPill() {
   const state = useAccount();
   const credits = state.status === "signed-in" ? state.credits : null;
   if (credits === null) return null;
-  const count = `${credits} ${credits === 1 ? "swap" : "swaps"} left`;
+  const count = `${credits} ${credits === 1 ? "picture" : "pictures"} left`;
   return (
     <PressableScale
       accessibilityRole="button"

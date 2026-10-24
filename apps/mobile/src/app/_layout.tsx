@@ -131,17 +131,22 @@ export default function RootLayout() {
         <Stack.Protected guard={isSignedIn && hasPlan}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="pack/[id]" options={pageHeader} />
-          <Stack.Screen name="swap/[id]" options={pageHeader} />
           <Stack.Screen name="capture/[pack]" options={pageHeader} />
           <Stack.Screen name="snap" options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }} />
           <Stack.Screen name="studio/[id]" options={pageHeader} />
           {/* No header bar: the sheet has its own headline and Close (app/buy.tsx). */}
           <Stack.Screen name="buy" options={{ presentation: "modal", headerShown: false }} />
         </Stack.Protected>
-        {/* Hard paywall (owner's choice, 2026-10-10): without a plan, only the plans and account settings. */}
+        {/* Hard paywall (owner's choice, 2026-10-10): without a plan, the plans, account settings and saved pictures. */}
         <Stack.Protected guard={isSignedIn && !hasPlan}>
           <Stack.Screen name="paywall" />
           <Stack.Screen name="manage-account" options={{ ...pageHeader, title: "Account" }} />
+          {/* People keep their pictures when a plan ends (owner's choice, 2026-10-24); new ones need a plan. */}
+          <Stack.Screen name="my-pictures" options={{ ...pageHeader, title: "" }} />
+        </Stack.Protected>
+        {/* A saved picture opens with or without a plan; "Swap more" only shows with one (app/swap/[id].tsx). */}
+        <Stack.Protected guard={isSignedIn}>
+          <Stack.Screen name="swap/[id]" options={pageHeader} />
         </Stack.Protected>
         <Stack.Protected guard={!isSignedIn}>
           <Stack.Screen name="sign-in" />
@@ -160,7 +165,7 @@ export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
   return (
     <View style={styles.error}>
       <Text style={styles.errorTitle}>Something went wrong</Text>
-      <Text style={styles.errorBody}>This screen hit a problem. Your swaps and purchases are safe.</Text>
+      <Text style={styles.errorBody}>This screen hit a problem. Your pictures and your plan are safe.</Text>
       <Button label="Try again" onPress={() => void retry()} />
     </View>
   );

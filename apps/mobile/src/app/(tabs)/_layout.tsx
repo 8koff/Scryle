@@ -1,7 +1,7 @@
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { colors } from "@/theme";
 
-/** The iPhone's own tab bar: Home, My swaps, Account. */
+/** The iPhone's own tab bar: Home, My pictures, Account. */
 export default function TabsLayout() {
   return (
     <NativeTabs tintColor={colors.accentInk} iconColor={colors.muted} backgroundColor={colors.bg}>
@@ -10,7 +10,7 @@ export default function TabsLayout() {
         <NativeTabs.Trigger.Icon sf={{ default: "house", selected: "house.fill" }} />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="swaps">
-        <NativeTabs.Trigger.Label>My swaps</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>My pictures</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: "photo.on.rectangle", selected: "photo.fill.on.rectangle.fill" }} />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="account">

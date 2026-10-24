@@ -33,7 +33,7 @@ export default function StudioScreen() {
     return (
       <SafeAreaView style={styles.missing}>
         <Text style={styles.heading}>This photo is closed</Text>
-        <Text style={styles.body}>Photos stay open while the app is open. Your finished swaps are in My swaps.</Text>
+        <Text style={styles.body}>Photos stay open while the app is open. Your finished pictures are in My pictures.</Text>
         <Button label="Go home" onPress={() => router.replace("/")} />
       </SafeAreaView>
     );
@@ -135,7 +135,7 @@ function Studio({ build }: { build: Build }) {
         void account.refreshCredits(); // the swap came back
         show({ kind: "failed", message: end.message });
       } else {
-        show({ kind: "pending", message: "This is taking longer than usual. Check its status in My swaps, or check again here." });
+        show({ kind: "pending", message: "This is taking longer than usual. Check its status in My pictures, or check again here." });
       }
     } finally {
       isRendering.current = false;
@@ -143,7 +143,7 @@ function Studio({ build }: { build: Build }) {
   };
 
   const credits = me.status === "signed-in" ? me.credits : null;
-  const costLine = render.kind === "pending" ? "Recovers your existing request without starting another swap." : credits === null ? " " : credits === 0 ? "You're out of swaps." : `Uses 1 of your ${credits} ${credits === 1 ? "swap" : "swaps"}.`;
+  const costLine = render.kind === "pending" ? "Recovers your existing request without starting another swap." : credits === null ? " " : credits === 0 ? "You've used this month's pictures." : `Uses 1 of your ${credits} ${credits === 1 ? "picture" : "pictures"} left this month.`;
   const buttonLabel =
     render.kind === "rendering"
       ? "Swapping…"
@@ -189,7 +189,7 @@ function Studio({ build }: { build: Build }) {
         {render.kind === "done" ? <DonePanel build={build} job={render.job} picks={render.picks} /> : null}
         {render.kind === "failed" || render.kind === "pending" ? <Text style={[styles.padded, styles.notice]}>{render.message}</Text> : null}
         {render.kind === "pending" ? (
-          <View style={styles.padded}><Button label="Open My swaps" variant="quiet" onPress={() => router.navigate("/swaps")} /></View>
+          <View style={styles.padded}><Button label="Open My pictures" variant="quiet" onPress={() => router.navigate("/swaps")} /></View>
         ) : null}
 
         {render.kind !== "pending" && render.kind !== "rendering" ? <>
@@ -364,7 +364,7 @@ function DonePanel({ build, job, picks }: { build: Build; job: ShareJob; picks: 
 
   return (
     <View style={[styles.padded, styles.done]}>
-      <Text style={styles.small}>Saved to My swaps.</Text>
+      <Text style={styles.small}>Saved to My pictures.</Text>
       <Button label="Share the picture" isBusy={busy === "picture"} disabled={busy !== null} onPress={() => void onPicture()} />
       <Text style={styles.small}>One image with both photos. Only people you send it to see it.</Text>
       <Button label={linkUrl ? "Share the link again" : "Make a link"} variant="quiet" isBusy={busy === "link"} disabled={busy !== null} onPress={() => void onLink()} />

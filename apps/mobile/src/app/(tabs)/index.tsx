@@ -67,7 +67,7 @@ export default function Home() {
 
         <View style={styles.section}>
           <View style={[styles.padded, styles.sectionHead]}>
-            <Text style={styles.sectionTitle}>Your swaps</Text>
+            <Text style={styles.sectionTitle}>Your pictures</Text>
             {recent.length ? (
               <Text style={styles.link} onPress={() => router.navigate("/swaps")} accessibilityRole="link">
                 See all
@@ -87,10 +87,10 @@ export default function Home() {
           ) : (
             <Text style={[styles.padded, styles.empty]}>
               {renders.status === "loading"
-                ? "Loading your swaps…"
+                ? "Loading your pictures…"
                 : renders.status === "error"
                   ? renders.message
-                  : "Your swaps show up here. Pick a category above to make your first one."}
+                  : "Your pictures show up here. Pick a category above to make your first one."}
             </Text>
           )}
         </View>
