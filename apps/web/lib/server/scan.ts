@@ -1,6 +1,7 @@
 import { getPack, isPackId, type Pack, type SceneAnalysis } from "@retrofit/core";
 import { imageSize } from "image-size";
 import type { ApiResponse, ScanResult } from "@/lib/api";
+import { AI_CONSENT_NEEDED } from "./ai-consent";
 
 export const MAX_PHOTO_BYTES = 12 * 1024 * 1024;
 
@@ -21,6 +22,8 @@ export type ScanDeps = {
   reserve: () => Promise<boolean>;
   /** Gives the booking back when the photo was never read. */
   release: () => Promise<void>;
+  /** For a signed-in caller: is current AI consent stored for this account? */
+  hasAiConsent?: () => Promise<boolean>;
 };
 
 type Result = { status: number; body: ApiResponse<ScanResult> };
@@ -35,6 +38,21 @@ export async function handleScan(form: FormData, deps: ScanDeps): Promise<Result
 
   if (pack.capture.requireAdult && form.get("adult") !== "yes") {
     return fail(400, "Please confirm you are 18 or older.");
+  }
+
+  // Visitors have no account to save a choice against, so they explicitly allow each scan.
+  // Signed-in callers must have a server-side record. Either way, no upload or spend occurs first.
+  if (!deps.hasAiConsent && form.get("ai_consent") !== "yes") return fail(403, AI_CONSENT_NEEDED);
+  if (deps.hasAiConsent) {
+    let hasConsent: boolean;
+    try {
+      hasConsent = await deps.hasAiConsent();
+    } catch (error) {
+      // Fails closed: if consent can't be checked, the photo isn't sent anywhere.
+      console.error("[scan] consent check failed", error);
+      return fail(503, "We couldn't check your settings right now. Please try again.");
+    }
+    if (!hasConsent) return fail(403, AI_CONSENT_NEEDED);
   }
 
   const photo = form.get("photo");

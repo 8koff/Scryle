@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BRAND, CREDIT_PACKS, formatUsd, FREE_RENDERS, INVITE_RENDERS, MAX_SWAPS_PER_PICTURE } from "@retrofit/core";
+import { BRAND, MAX_SWAPS_PER_PICTURE } from "@retrofit/core";
 import { ContactEmail, LegalPage, operatorName, type LegalSection } from "@/components/legal/legal-page";
 import { REVIEW_HOURS } from "@/lib/reports";
 
 export const metadata: Metadata = { title: `Terms · ${BRAND.name}` };
-
-const packs = CREDIT_PACKS.map((p) => `${p.label}: ${p.credits} pictures for ${formatUsd(p.priceCents)}`).join("; ");
 
 const sections: LegalSection[] = [
   {
@@ -27,7 +25,9 @@ const sections: LegalSection[] = [
       <ul>
         <li>You must be 18 or older.</li>
         <li>The service is made for people in the United States. Prices are in US dollars.</li>
-        <li>One account per person. You sign in with a link we send to your email, so keep your email account safe.</li>
+        <li>
+          One account per person. You sign in with Apple or with a code we send to your email, so keep those accounts safe.
+        </li>
       </ul>
     ),
   },
@@ -52,6 +52,26 @@ const sections: LegalSection[] = [
     ),
   },
   {
+    id: "ai",
+    title: "How your photo is processed",
+    body: (
+      <>
+        <p>
+          To find what you can swap and make your picture, your photo is sent to AI partners that work for us. In the
+          iPhone app we ask you before your first scan. On the website, we ask before each scan. Nothing is sent unless you
+          allow it. If you say no, you can&rsquo;t scan photos.
+        </p>
+        <p>
+          Who our AI partners are, what they receive, how long they keep your photo and what you can delete are in the{" "}
+          <Link href="/privacy#ai" className="font-semibold text-accent-ink underline-offset-4 hover:underline">
+            Privacy Policy
+          </Link>
+          .
+        </p>
+      </>
+    ),
+  },
+  {
     id: "renders",
     title: "What our pictures are, and are not",
     body: (
@@ -68,26 +88,69 @@ const sections: LegalSection[] = [
     ),
   },
   {
-    id: "payments",
-    title: "Pictures, payments and no refunds",
+    id: "plans",
+    title: "Plans, swaps and auto-renewal",
     body: (
       <ul>
         <li>
-          Every new account gets {FREE_RENDERS} free picture. After that you buy packs ({packs}). Each new picture uses one, and
-          one picture can change up to {MAX_SWAPS_PER_PICTURE} items at once (each item is a &ldquo;swap&rdquo;). Looking at
-          your photo and picking parts is free.
+          Making pictures needs a plan. There is no free picture and no free trial. There are three plans,{" "}
+          <strong>Starter</strong>, <strong>Plus</strong> and <strong>Pro</strong>, each paid monthly or yearly. The plans
+          screen shows each plan&rsquo;s price and how many swaps it gives before you buy.
         </li>
-        <li>Payments are handled by Stripe. We never see or store your card number.</li>
-        <li>Pictures you bought don&rsquo;t expire.</li>
-        <li>If a picture fails or the safety filter blocks it, you get that picture back automatically.</li>
         <li>
-          <strong>All sales are final.</strong> We don&rsquo;t give refunds for packs you bought, used or not, except where
-          the law requires it. Try your free picture first to see if {BRAND.name} is right for you.
+          Each new picture uses one swap, and one picture can change up to {MAX_SWAPS_PER_PICTURE} items at once.
         </li>
-        <li>If a payment is reversed or disputed, the pictures it bought are removed from your account.</li>
         <li>
-          Invites: when a new account you invited buys its first pack, you each get {INVITE_RENDERS} free pictures. Only new
-          accounts count. We may remove pictures gained by gaming this.
+          <strong>Your swaps reset every month</strong>, counted from the day your plan started. Swaps you don&rsquo;t use
+          in a month don&rsquo;t carry over to the next one. A yearly plan also gives its swaps month by month, not all at
+          once.
+        </li>
+        <li>
+          <strong>Plans renew automatically</strong> at the end of each month or year, at the price you agreed to, until you
+          cancel. If the price of your plan goes up, you&rsquo;ll be told before you pay the new price.
+        </li>
+        <li>
+          If you move to a bigger plan, it starts at once and this month&rsquo;s swaps go up to the new amount. A smaller
+          plan starts at your next renewal.
+        </li>
+        <li>
+          In the iPhone app you pay with your Apple ID through Apple. On the website, payments are handled by Stripe. We use
+          RevenueCat to keep track of subscriptions, so one plan works in both places. We never see or store your card
+          number.
+        </li>
+        <li>If a picture fails or the safety filter blocks it, you get that swap back automatically.</li>
+        <li>
+          Free pictures and packs from before plans started can&rsquo;t be used anymore.
+        </li>
+      </ul>
+    ),
+  },
+  {
+    id: "cancel",
+    title: "Cancelling, and no refunds",
+    body: (
+      <ul>
+        <li>
+          <strong>You can cancel at any time.</strong> If you subscribed in the iPhone app, cancel in your iPhone&rsquo;s
+          Settings › your name › Subscriptions (the app&rsquo;s Account screen links there). If you subscribed on the
+          website, cancel from your account on the website.
+        </li>
+        <li>
+          Cancel at least 24 hours before your plan renews to avoid the next payment. After you cancel, your plan and its
+          swaps keep working until the end of the month or year you paid for, then stop.
+        </li>
+        <li>
+          <strong>All payments are final.</strong> We don&rsquo;t give refunds for the rest of a month or year, or for swaps
+          you didn&rsquo;t use, except where the law requires it. Refunds for plans bought in the iPhone app are decided by
+          Apple under Apple&rsquo;s own rules.
+        </li>
+        <li>
+          If a payment is refunded, reversed or disputed (by Apple or by Stripe), the plan it paid for ends and that
+          month&rsquo;s unused swaps are removed.
+        </li>
+        <li>
+          Deleting the app or closing your {BRAND.name} account doesn&rsquo;t cancel an Apple subscription. Cancel it in
+          Settings first.
         </li>
       </ul>
     ),
@@ -158,7 +221,7 @@ const sections: LegalSection[] = [
     title: "Things you may not do",
     body: (
       <ul>
-        <li>Try to get around limits, for example by making extra accounts for free pictures.</li>
+        <li>Try to get around limits, for example by sharing one plan between people or making extra accounts.</li>
         <li>Copy, scrape or resell the service, or try to break or overload it.</li>
         <li>Use it to make pictures that mislead people about a real person.</li>
       </ul>
@@ -185,9 +248,10 @@ const sections: LegalSection[] = [
     title: "Changes and ending",
     body: (
       <p>
-        We may change these terms. If a change matters, we will tell you on the site or by email before it applies. You can
-        stop using the service at any time and close your account from the account menu. Pictures you haven&rsquo;t used
-        are lost when you do.
+        We may change these terms. If a change matters, we will tell you on the site, in the app or by email before it
+        applies. You can stop using the service at any time and close your account from the account menu. Swaps you
+        haven&rsquo;t used are lost when you do, and an Apple subscription keeps running until you cancel it (see
+        &ldquo;Cancelling&rdquo; above).
       </p>
     ),
   },

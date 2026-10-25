@@ -52,10 +52,8 @@ export default async function OpenGraphImage() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 560 }}>
           <div style={{ display: "flex", padding: 10, borderRadius: 32, background: INK, transform: "rotate(2deg)" }}>
             <div style={{ display: "flex", width: photo.width, height: photo.height, borderRadius: 22, overflow: "hidden", position: "relative" }}>
-              {/* eslint-disable-next-line @next/next/no-img-element -- drawn by next/og, not the browser */}
               <img src={before} alt="" width={photo.width} height={photo.height} style={{ position: "absolute", inset: 0, objectFit: "cover" }} />
               <div style={{ position: "absolute", top: 0, right: 0, width: photo.width / 2, height: photo.height, display: "flex", overflow: "hidden" }}>
-                {/* eslint-disable-next-line @next/next/no-img-element -- drawn by next/og, not the browser */}
                 <img src={after} alt="" width={photo.width} height={photo.height} style={{ position: "absolute", top: 0, right: 0, objectFit: "cover" }} />
               </div>
               <div style={{ position: "absolute", top: 0, left: photo.width / 2 - 2, width: 4, height: photo.height, background: "#ffffff" }} />

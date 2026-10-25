@@ -6,6 +6,100 @@ Working notes for whoever picks up next (people or AI coding sessions). New here
 This repo is public. Account details (emails, dashboard ids, project refs, billing) live with the owner, not here.
 Never add them to this file or any other tracked file.
 
+## Mac session: iPhone app redesign + subscriptions (2026-10-07 → 10-11) — START HERE
+
+Everything below is on the local branch **`feat/ios-app`** (tracks `origin/claude/web-vs-ios-strategy-435098`) in
+`~/Tessera/Scryle`. **Nothing is committed, pushed, merged or live** (~75 changed files). The live site is still in
+waitlist-only mode (`apps/web/lib/site-mode.ts`, `WAITLIST_ONLY = true`), so visitors see none of it.
+
+### First things to do
+
+1. **Commit** in logical pieces (owner asked to be asked first): (a) app design pass, (b) subscriptions phase 1
+   server, (c) phase 2 app, (d) phase 3 website. Then push the branch and open a PR. Don't merge; the owner merges.
+2. **Owner decision pending: what an invite gives.** Invites used to give both people 2 free pictures as ledger
+   credits, which no longer count. Invite panels are hidden (comments mark the spots in `apps/mobile/src/app/(tabs)/index.tsx`,
+   `(tabs)/account.tsx`, `apps/web/components/account/account-page.tsx`, `buy-sheet.tsx`); invite links still record
+   referrals. Options: extra swaps added to the current month, or a free first month (RevenueCat promotional entitlement).
+3. **Phase 4:** Terms and Privacy (protected) still describe packs, the free picture and Stripe Checkout; update for
+   subscriptions (auto-renewal, cancelling, no rollover, RevenueCat as processor). Then README / ONBOARDING /
+   `apps/mobile/README.md` (it still describes `expo-iap` and pack products).
+
+### Subscriptions (owner's decisions, 2026-10-10)
+
+Full plan, decisions, owner setup steps and sources: **[`docs/plans/subscriptions-revenuecat.md`](docs/plans/subscriptions-revenuecat.md)**.
+
+- **Subscriptions only**, via **RevenueCat**: Apple in the app, RevenueCat Web Billing (Stripe) on the website. One
+  plan works on both (RevenueCat app user id = Supabase user id).
+- Plans (`packages/core/src/subscriptions.ts`): Starter 25 / Plus 60 / Pro 150 swaps a month; $4.99 / $9.99 / $19.99
+  monthly, $49.99 / $99.99 / $199.99 yearly. Product ids `io.scryapp.sub.<tier>.<monthly|yearly>` in every store.
+- **Monthly allowance, no rollover.** Yearly plans reset monthly too. **No free swap. No trial. Hard paywall in the
+  app. Our own paywall design.** Old ledger credits no longer count (owner confirmed no real money bought packs).
+- **Who has access** (`hasAccess` in `apps/web/lib/server/subscriptions.ts`): refunded → no; otherwise until
+  `expiresAt`. Billing problems are handled by the store grace period moving `expiresAt` (no code change needed).
+
+What was built:
+
+| Phase | Where | What |
+|---|---|---|
+| 1 server | `supabase/migrations/0012_subscriptions.sql` (+ `setup-all.sql`), `apps/web/lib/server/subscriptions.ts`, `credits.ts`, `accounts.ts`, `app/api/revenuecat/webhook/route.ts`, `app/api/credits/route.ts` | `subscriptions` + `swap_allowance` tables, `spend_swap` / `swap_balance`, refunds go back to their month. Webhook checks the Authorization header and re-reads the customer from RevenueCat on every event (duplicates and unknown types are harmless). `/api/credits` returns `{ credits, plan }`. |
+| 2 app | `apps/mobile/src/lib/purchases.ts`, `components/plans-screen.tsx`, `app/paywall.tsx`, `app/buy.tsx`, `app/manage-account.tsx`, `app/_layout.tsx`, `components/plan-card.tsx`, `lib/account.ts` | `react-native-purchases` replaces `expo-iap`. Hard paywall guard in `_layout.tsx` (loading screen while the plan loads, "Couldn't check your plan" on error). Restore purchases, Manage subscription, plan card. |
+| 3 website | `apps/web/lib/account/subscribe.ts`, `components/account/plan-picker.tsx`, `buy-sheet.tsx`, `components/home/pricing.tsx`, `lib/security/csp.ts` | `@revenuecat/purchases-js`. Plan picker on the pricing section and in the buy sheet. Removed: Stripe Checkout routes, `checkout-return`, Apple pack routes + `lib/server/apple.ts` + `@apple/app-store-server-library`. CSP allows RevenueCat + Stripe frames. |
+| shared | `packages/core/src/plan-offers.ts`, `api.ts` (`PlanInfo`) | Store products → paywall cards, preview plans for builds without keys. |
+
+Before any of this can go live, the owner must: create the RevenueCat project, the six App Store subscriptions and
+Stripe prices, set the keys (`EXPO_PUBLIC_REVENUECAT_IOS_KEY`, `NEXT_PUBLIC_REVENUECAT_WEB_KEY`,
+`REVENUECAT_SECRET_API_KEY`, `REVENUECAT_WEBHOOK_AUTH`), and run `0012_subscriptions.sql` on production. Until a plan
+can be sold, nobody can make swaps (no free swap), so phases 1–3 must ship together. The App Review demo account needs
+a RevenueCat promotional entitlement to get past the hard paywall.
+
+### App design pass (owner reviewed and liked it)
+
+- Shared title style `headline(size)` in `apps/mobile/src/theme.ts` (web hero's -0.028em tracking); used on sign-in,
+  Home, category, Account, My swaps, paywall. Break long titles by hand (`\n`) or use `lineBreakStrategyIOS="push-out"`.
+- Sign-in: Seam logo lockup (`components/seam-mark.tsx`, drawn with Views) + "See it before you buy it."
+- Home: two-line title, shorter category cards (fit above the tab bar), swaps-left pill in the top row.
+- Saved swap page: **Shop this look** with store links (`components/shop-look.tsx`, `lib/swap-items.ts`; label i ↔
+  selection i); the studio's after-swap list uses the same component.
+- Category page: no duplicate header title, light (not denim) selected chip, Clothing rules as three short lines.
+- Account: avatar initial, Sign out row, Delete account as a quiet link (confirm flow unchanged).
+
+Ideas not done yet: a before/after slider in the empty middle of the sign-in screen; a broader studio design review.
+
+Camera/photo review pass (2026-10-11): `apps/mobile/src/app/capture/[pack].tsx` now keeps the photo source through
+review and scan retries, labels the source and category, and gives the photo a fixed flexible preview area so the
+actions remain visible on short screens. Scanning has a clearer progress message. This is a local UI change; no
+provider call or device acceptance test was run. `npx turbo run typecheck test` passed (core 57, web 424, app 88),
+web ESLint and targeted mobile ESLint passed, and `git diff --check` passed. Studio design review is still next.
+The studio's "Make a link" action now opens the share sheet as soon as the link is created; later taps reuse it.
+
+### Running the iPhone app on this Mac
+
+- Xcode 27 / iOS 27 simulator ("iPhone 18 Pro"). CocoaPods 1.17 runs on Homebrew's portable Ruby in `~/.local`
+  (`~/.local/bin/pod`; system Ruby 2.6 can't build it). `gh` is at `~/.local/bin/gh`.
+- `apps/mobile/ios/` is generated and git-ignored. **It holds a local iOS 27 launch fix**: `AppDelegate.swift` adopts
+  `ExpoReactNativeFactoryProvider` and `Info.plist` has a `UIApplicationSceneManifest` using Expo's
+  `EXExpoAppSceneDelegate` (iOS 27 kills apps without the scene life cycle). **`expo prebuild` wipes it.** Make it
+  permanent with a small Expo config plugin before EAS moves to Xcode 27, or TestFlight builds will crash on launch.
+- After adding a native package: `cd apps/mobile/ios && PATH="$HOME/.local/bin:$PATH" LANG=en_US.UTF-8 pod install`,
+  then rebuild the `Scryle` scheme of `Scryle.xcworkspace`. Don't run `expo prebuild` (it also edits `package.json`).
+- Metro on **port 8082** (8081 is often the Brainchild app's): `cd apps/mobile && npx expo start --dev-client --port 8082`,
+  then open `exp+scryle://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8082` in the simulator.
+- Sign-in needs `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (the web's public values; ask the
+  owner). AI tools may not write `.env.local` (`AI_RULES.md`), so either the owner puts them there or Metro is started
+  with them as environment variables. Without RevenueCat keys the paywall shows **preview** plans that can't be bought.
+- The app calls the **live** site by default (`EXPO_PUBLIC_API_URL` empty), which doesn't have phase 1 yet, so every
+  account sees the paywall. Don't run scans or renders against live without a price and a yes (`AI_RULES.md` 1.3).
+- **Expo rewrites `apps/mobile/tsconfig.json` every time Metro starts**; `git checkout -- apps/mobile/tsconfig.json`
+  before committing.
+- Driving the simulator: links like `scryle://swaps` / `scryle://account` show an "Open in Scryle?" prompt; taps on
+  the native tab bar and swipes near cards are unreliable, and the Expo dev-tools gear button covers the top right
+  (drag it aside). It's dev-only.
+
+### Checks at the end of the session
+
+`npx turbo run typecheck test` (core 57, web 424, app 91 passing), web and app lint clean. The 4 old eslint warnings
+(unused disables in the two `opengraph-image.tsx` files) were removed.
+
 ## Repo made ready for collaborators (2026-09-27)
 
 - Account details removed from this file. Added `README.md`, `ONBOARDING.md`, `CONTRIBUTING.md`, `SECURITY.md`,
@@ -306,3 +400,102 @@ them joined (rebuild it by concatenating the migration files after a header line
   wrappers `absolute inset-0`. With `aspect-ratio` + `max-height`, add `w-full` or the browser narrows the box.
 - Windows scripts: set `process.exitCode`, never `process.exit()`.
 - Two hero room pictures are **mirrored** on purpose. The owner's Chrome has Grammarly (hydration warning silenced on `<body>`).
+
+## Product assessment (2026-10-04)
+
+- Added `PRODUCT-REVIEW.md`: five ranked improvements for the iOS product, with current-code evidence, rough
+  effort estimates, first changes, and success checks. Read the newer iOS handoff for the current product direction;
+  the older web roadmap above is historical.
+- Recommended order: safe recovery after interrupted swaps; examples before sign-in; mobile store-search
+  refinement; persistent unfinished edits; invite capture and claiming in iOS. Protected implementation work is
+  identified in the report; this session implemented no product changes.
+- Verified `npx --no-install turbo run typecheck test`: 6/6 tasks passed; web 389 tests, mobile 64, core 46 (core
+  tests and typecheck from cache). Web ESLint passed with no output. Device flows and paid provider quality remain
+  unverified; no production changes or paid API calls were made.
+- Existing `apps/mobile/tsconfig.json` edits and the untracked `ARCHITECTURE.md` were left in place.
+
+## Interrupted-swap recovery started (2026-10-04)
+
+- Working branch: `codex/recover-interrupted-swaps`. Local checkpoint `2cbd4b7` adds
+  `apps/web/lib/server/render-retry.test.ts`. It reproduces a lost-response retry submitting two provider jobs
+  and spending two credits. Providers are mocked; no paid run occurred.
+- Concrete design, acceptance checks, and RED evidence: `docs/testing/interrupted-swaps.md`.
+- Implementation is not complete. The new regression deliberately remains failing; all 499 pre-existing tests
+  passed (mobile/core from cache). Web typecheck passed separately; mobile/core typechecks were cached; web lint passed.
+- Awaiting the owner's exact-file confirmation for `supabase/migrations/0011_render_requests.sql` and appending
+  the same SQL to `supabase/setup-all.sql`. Proposed table stores account-scoped request IDs, fingerprints,
+  outcomes, and timestamps with RLS and service-role access only. No protected files have been edited.
+- No product code changed yet. Existing uncommitted work remains in place. Nothing was pushed or deployed.
+
+## Interrupted-swap recovery implemented locally (2026-10-04)
+
+- Continues the approved work above. The owner confirmed the exact database source changes: new
+  `supabase/migrations/0011_render_requests.sql` and the identical appended SQL in `supabase/setup-all.sql`.
+  No live SQL or deployment occurred; protected credit/auth/spend/rate-limit helpers were reused unchanged.
+- Mobile persists an account-scoped request ID before starting a swap. The API claims it durably before spending,
+  fingerprints its input, and replays known outcomes. GET `/api/render/requests/[id]` recovers an authenticated
+  account's request without another paid submission. Legacy callers without IDs retain the existing behavior.
+- Foreground and My swaps recover pending requests. My swaps shows checking/running/ready/failed status;
+  the studio can check the existing swap even with zero remaining credits. It prevents changing picks during
+  an unresolved request. Completed states cannot regress when studio and foreground responses arrive out of order.
+- Unknown provider acceptance remains pending and is never automatically retried or reclaimed. Such a request
+  can retain its credit and reserved spend until owner reconciliation. This is lost-response protection, not a
+  guarantee that every interrupted provider call can be resolved automatically. Scan starts remain separate work.
+- Verification: `npx --no-install turbo run typecheck test` passed 6/6 tasks: web 410, mobile 81, core 46 tests
+  (537 total; core checks cached). Web and mobile ESLint passed. SQL mirror and `git diff --check` passed.
+  Recovery engine coverage: 98.09% lines, 82.94% branches. Detailed RED/GREEN evidence and limits:
+  `docs/testing/interrupted-swaps.md`; original RED checkpoint `2cbd4b7`.
+- Owner release order: apply migration 0011, deploy the API, then release the iOS client. The client refuses a
+  paid start if recovery support is missing. Device acceptance and a real database concurrency/RLS check remain
+  unverified (no iPhone, local Postgres or Docker used); provider tests are mocked. No dependency was added.
+- This branch remains local. GitHub CLI is unavailable; no PR, push, merge, or release was performed. Existing
+  `apps/mobile/tsconfig.json` edits and untracked `ARCHITECTURE.md` are outside this change and remain untouched.
+
+## AI-data consent and subscription Terms/Privacy (2026-10-11, branch `feat/ai-consent-legal`)
+
+Fixes blockers 1 and 2 of the iOS ship check (Apple guideline 5.1.2(i): ask before photos go to a third-party AI).
+- **App:** `AiConsentGate` (`apps/mobile/src/components/ai-consent-gate.tsx`) wraps the camera in `capture/[pack]` and
+  `snap`. First time: "Before your first scan" screen ("trusted AI partners", Allow / Not now). **Owner's choice
+  (2026-10-11): no company names in the app.** "Who we work with ›" opens `/privacy#ai`, which names Anthropic and
+  Higgsfield with retention. The answer comes from the server; a yes is remembered for the app session (`lib/ai-consent.ts`).
+- **Server:** `GET/POST /api/ai-consent` (`lib/server/ai-consent.ts`, table `ai_consents`, migration **0013**, not run on
+  production yet). `/api/scan` now refuses a **signed-in** scan without consent (403), before uploading or booking
+  spend; a sign-in header that doesn't check out gets 401; consent check errors fail closed (503).
+- **Website:** every category now asks for a separate AI Allow checkbox before camera, upload or drag-and-drop.
+  A signed-out visitor's scan must carry `ai_consent=yes` or `/api/scan` refuses it (403) before upload or spend.
+  The checkbox resets after a successful scan. Clothing's 18+ checkbox stays separate. The page says "AI partners"
+  and links to `/privacy#ai`; company names stay on the Privacy page. Website visitor choices aren't saved to an
+  account, unlike the iPhone app's one-time consent.
+- **Version:** `AI_CONSENT_VERSION` in `packages/core/src/ai-consent.ts`. Raise it (and update the app screen and
+  Privacy) when a new AI company or a new use of photos is added: everyone is asked again.
+- **Terms and Privacy** rewritten for plans (Starter/Plus/Pro, monthly reset, no rollover, auto-renew, cancelling,
+  refunds via Apple/Stripe, RevenueCat) and a new Privacy section "Your photos and AI" (`/privacy#ai`). Prices and
+  swap counts aren't hard-coded: the plans screen shows them. Owner approval needed (protected files).
+- Withdrawing consent is by email or closing the account for now; an in-app switch is a possible follow-up.
+
+### Consent save confirmation (2026-10-11)
+
+- Mobile opens the camera only after the server confirms permission for this build's wording version.
+  An unconfirmed save or a different version stays blocked and is not cached as permission.
+- Three new regression cases failed before the fix and pass now. Full typecheck/test: 6/6 tasks passed,
+  mobile 100 tests; core and web checks reused passing cache. Web lint: no errors, four existing warnings.
+- Only mobile consent logic/tests and this handoff changed in this follow-up. No additional protected files,
+  database changes, dependencies, deployments or paid calls. Subscription integration remains blocked by
+  the other session's uncommitted work in the main checkout.
+
+## Persistent iOS 27 startup fix (2026-10-11, `fix/ios-scene-lifecycle`)
+
+- Founder approved adding Expo's official `expo-build-properties` plugin. Version `~57.0.22` is installed and
+  locked; `app.json` sets `ios.enableSceneSupport: true`. This preserves the startup fix in fresh prebuilds and
+  EAS builds instead of relying on hand-edits to the ignored `ios/` directory.
+- A fresh prebuild before the change lacked a scene manifest and started React Native from AppDelegate.
+  A clean prebuild after the change generates `EXExpoAppSceneDelegate` in the scene manifest and makes
+  AppDelegate conform to `ExpoReactNativeFactoryProvider`, without the old window/startup block.
+- Verified: local Xcode Release simulator build succeeded; installed and launched on iPhone 17 / iOS 27.
+  Scryle reached its expected missing-account-keys screen, and its process remained running. JavaScript was
+  bundled in the Release app; Metro wasn't used. Account, purchase and real-device checks remain separate.
+- `npx turbo run typecheck test`: all six tasks pass (core 46, web 424, mobile 86 tests). Web ESLint has zero
+  errors and the same four existing image-file warnings. No production action or paid API call was made.
+- Protected files for founder review: `apps/mobile/package.json` and `package-lock.json`; review the native
+  build setting in `apps/mobile/app.json` too. This branch starts from committed `feat/ios-app`; the main
+  checkout's uncommitted subscription work was not edited or copied. Keep both sets of changes when integrating.

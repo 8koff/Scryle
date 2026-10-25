@@ -9,6 +9,8 @@ import { INTROS } from "@/lib/scan/intro";
 
 interface ScanIntroProps {
   pack: Pack;
+  hasAllowedAi: boolean;
+  onAiChange: (value: boolean) => void;
   isAdultConfirmed: boolean;
   onAdultChange: (value: boolean) => void;
   onOpenCamera: () => void;
@@ -17,23 +19,28 @@ interface ScanIntroProps {
 
 function PrivacyLink() {
   return (
-    <Link href="/privacy#share" target="_blank" className="whitespace-nowrap font-medium underline underline-offset-2 hover:text-fg">
-      How we use it
+    <Link href="/privacy#ai" target="_blank" className="whitespace-nowrap font-medium underline underline-offset-2 hover:text-fg">
+      Who we work with ›
     </Link>
   );
 }
 
-export function ScanIntro({ pack, isAdultConfirmed, onAdultChange, onOpenCamera, onUpload }: ScanIntroProps) {
+export function ScanIntro({ pack, hasAllowedAi, onAiChange, isAdultConfirmed, onAdultChange, onOpenCamera, onUpload }: ScanIntroProps) {
   const intro = INTROS[pack.id];
-  const checkboxId = useId();
+  const aiCheckboxId = useId();
+  const adultCheckboxId = useId();
   const fileInput = useRef<HTMLInputElement>(null);
   const [hasTriedWithoutConfirm, setHasTriedWithoutConfirm] = useState(false);
   const needsAdult = pack.capture.requireAdult === true;
-  const isBlocked = needsAdult && !isAdultConfirmed;
+  const isBlocked = !hasAllowedAi || (needsAdult && !isAdultConfirmed);
 
   const handleOpenCamera = () => {
     if (isBlocked) return setHasTriedWithoutConfirm(true);
     onOpenCamera();
+  };
+  const handleOpenFile = () => {
+    if (isBlocked) return setHasTriedWithoutConfirm(true);
+    fileInput.current?.click();
   };
 
   const [isDragging, setIsDragging] = useState(false);
@@ -41,7 +48,8 @@ export function ScanIntro({ pack, isAdultConfirmed, onAdultChange, onOpenCamera,
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
-    if (file && pack.capture.allowUpload) onUpload(file);
+    if (file && pack.capture.allowUpload && !isBlocked) onUpload(file);
+    else if (file && isBlocked) setHasTriedWithoutConfirm(true);
   };
   const dropProps = pack.capture.allowUpload
     ? {
@@ -56,7 +64,7 @@ export function ScanIntro({ pack, isAdultConfirmed, onAdultChange, onOpenCamera,
 
   const handleFile = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) onUpload(file);
+    if (file && !isBlocked) onUpload(file);
     e.target.value = "";
   };
 
@@ -97,21 +105,39 @@ export function ScanIntro({ pack, isAdultConfirmed, onAdultChange, onOpenCamera,
           ))}
         </ol>
 
-        {needsAdult && (
-          <label htmlFor={checkboxId} className="mt-6 flex cursor-pointer items-start gap-3 rounded-2xl bg-surface-2 p-4">
+        <div className="mt-6 rounded-2xl bg-surface-2 p-4">
+          <label htmlFor={aiCheckboxId} className="flex cursor-pointer items-start gap-3">
             <input
-              id={checkboxId}
+              id={aiCheckboxId}
+              type="checkbox"
+              checked={hasAllowedAi}
+              onChange={(e) => onAiChange(e.target.checked)}
+              className="mt-0.5 size-5 shrink-0 accent-[var(--accent)]"
+            />
+            <span className="text-[15px] leading-snug">
+              I allow Scryle to send my photo to trusted AI partners to read it and make my swap.
+            </span>
+          </label>
+          <div className="ml-8 mt-2 text-[14px] text-muted"><PrivacyLink /></div>
+          {hasTriedWithoutConfirm && !hasAllowedAi && (
+            <span role="alert" className="ml-8 mt-1 block text-[14px] text-accent-ink">Please allow this before scanning.</span>
+          )}
+        </div>
+
+        {needsAdult && (
+          <label htmlFor={adultCheckboxId} className="mt-3 flex cursor-pointer items-start gap-3 rounded-2xl bg-surface-2 p-4">
+            <input
+              id={adultCheckboxId}
               type="checkbox"
               checked={isAdultConfirmed}
               onChange={(e) => onAdultChange(e.target.checked)}
               className="mt-0.5 size-5 shrink-0 accent-[var(--accent)]"
             />
             <span className="text-[15px] leading-snug">
-              I&apos;m 18 or older, this is a photo of me, and I agree that it is sent to our AI partners (Anthropic and
-              Higgsfield) to make the try-on. <PrivacyLink />
+              I&apos;m 18 or older, and this is a photo of me.
               {hasTriedWithoutConfirm && !isAdultConfirmed && (
                 <span role="alert" className="mt-1 block text-[14px] text-accent-ink">
-                  Please confirm to continue.
+                  Please confirm your age to continue.
                 </span>
               )}
             </span>
@@ -131,7 +157,8 @@ export function ScanIntro({ pack, isAdultConfirmed, onAdultChange, onOpenCamera,
             <>
               <button
                 type="button"
-                onClick={() => fileInput.current?.click()}
+                onClick={handleOpenFile}
+                aria-disabled={isBlocked}
                 className="inline-flex h-12 items-center rounded-full border border-line px-5 text-[16px] font-semibold transition-colors hover:border-fg"
               >
                 Upload a photo
@@ -148,8 +175,7 @@ export function ScanIntro({ pack, isAdultConfirmed, onAdultChange, onOpenCamera,
         ) : (
           <p className="mt-5 max-w-md text-[13px] leading-relaxed text-muted">
             {pack.capture.allowUpload && <span className="hidden md:inline">Or drop a photo anywhere on this card. </span>}
-            No people in the photo, please. Your photo is sent to our AI partners (Anthropic and Higgsfield) to find the
-            parts and make your swap. <PrivacyLink />
+            No people in the photo, please.
           </p>
         )}
       </div>

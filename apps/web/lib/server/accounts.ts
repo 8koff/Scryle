@@ -5,6 +5,7 @@ import { createSupabaseCreditStore, type CreditStore } from "./credits";
 import { createSupabaseRenderStore, type RenderStore } from "./renders";
 import { createSupabaseReportStore, type ReportStore } from "./reports";
 import { createSupabaseShareStore, type ShareStore } from "./shares";
+import { createSupabaseSubscriptionStore, type SubscriptionStore } from "./subscriptions";
 
 export type User = { id: string; email?: string };
 /** Checks a Supabase access token. Returns null for a missing, bad or expired token. */
@@ -50,6 +51,7 @@ export async function userFromRequest(request: Request, verify: VerifyUser): Pro
 let adminDb: SupabaseClient | null = null;
 let accounts: {
   credits: CreditStore;
+  subscriptions: SubscriptionStore;
   shares: ShareStore;
   renders: RenderStore;
   reports: ReportStore;
@@ -67,8 +69,10 @@ export function getAdminDb(): SupabaseClient {
 export function getAccounts() {
   if (!accounts) {
     const db = getAdminDb();
+    const subscriptions = createSupabaseSubscriptionStore(db);
     accounts = {
-      credits: createSupabaseCreditStore(db),
+      credits: createSupabaseCreditStore(db, subscriptions),
+      subscriptions,
       shares: createSupabaseShareStore(db),
       renders: createSupabaseRenderStore(db),
       reports: createSupabaseReportStore(db),

@@ -31,12 +31,15 @@ async function setup() {
   return { shares, renders };
 }
 
+/** Stopping billing works, unless a test says otherwise. */
+const endBilling = async () => {};
+
 describe("deleteAccount", () => {
   it("removes the person's share links, their photos and stored renders, then the account", async () => {
     const { shares, renders } = await setup();
     const deleteUser = vi.fn(async () => {});
 
-    await deleteAccount("u1", { shares, renders, deleteUser });
+    await deleteAccount("u1", { shares, renders, deleteUser, endBilling });
 
     expect(await shares.listByOwner("u1")).toEqual([]);
     expect([...shares.photos.keys()]).toEqual(["cccccccccc/after"]);
@@ -49,7 +52,53 @@ describe("deleteAccount", () => {
     const deleteUser = vi.fn(async () => {});
     const failing = { removeFilesOf: vi.fn(async () => Promise.reject(new Error("storage down"))) };
 
-    await expect(deleteAccount("u1", { shares, renders: failing, deleteUser })).rejects.toThrow("storage down");
+    await expect(deleteAccount("u1", { shares, renders: failing, deleteUser, endBilling })).rejects.toThrow("storage down");
+    expect(deleteUser).not.toHaveBeenCalled();
+  });
+
+  it("disconnects Sign in with Apple before anything is deleted", async () => {
+    const { shares, renders } = await setup();
+    const order: string[] = [];
+    const disconnectApple = vi.fn(async () => void order.push("apple"));
+    const deleteUser = vi.fn(async () => void order.push("user"));
+
+    await deleteAccount("u1", { shares, renders, deleteUser, disconnectApple, endBilling });
+
+    expect(order).toEqual(["apple", "user"]);
+  });
+
+  it("deletes nothing when Apple can't be disconnected", async () => {
+    const { shares, renders } = await setup();
+    const deleteUser = vi.fn(async () => {});
+    const disconnectApple = vi.fn(async () => Promise.reject(new Error("apple down")));
+
+    await expect(deleteAccount("u1", { shares, renders, deleteUser, disconnectApple, endBilling })).rejects.toThrow("apple down");
+    expect(await shares.listByOwner("u1")).toHaveLength(2);
+    expect([...renders.files.keys()].some((k) => k.startsWith("u1/"))).toBe(true);
+    expect(deleteUser).not.toHaveBeenCalled();
+  });
+
+  it("stops billing after Apple and before anything is deleted", async () => {
+    const { shares, renders } = await setup();
+    const order: string[] = [];
+    await deleteAccount("u1", {
+      shares,
+      renders,
+      deleteUser: async () => void order.push("user"),
+      disconnectApple: async () => void order.push("apple"),
+      endBilling: async () => void order.push("billing"),
+    });
+    expect(order).toEqual(["apple", "billing", "user"]);
+  });
+
+  it("deletes nothing when billing can't be stopped, so it can be tried again", async () => {
+    const { shares, renders } = await setup();
+    const deleteUser = vi.fn(async () => {});
+    const failing = vi.fn(async () => Promise.reject(new Error("revenuecat down")));
+
+    await expect(deleteAccount("u1", { shares, renders, deleteUser, endBilling: failing })).rejects.toThrow("revenuecat down");
+    expect(await shares.listByOwner("u1")).toHaveLength(2);
+    expect([...renders.files.keys()].some((k) => k.startsWith("u1/"))).toBe(true);
     expect(deleteUser).not.toHaveBeenCalled();
   });
 });

@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { CREDIT_PACKS, creditPack, formatUsd, FREE_RENDERS, isCreditPackId, packMargin, packSavingPercent } from "./credits";
+import {
+  appleProductId,
+  CREDIT_PACKS,
+  creditPack,
+  creditPackForAppleProduct,
+  formatUsd,
+  FREE_RENDERS,
+  isCreditPackId,
+  packMargin,
+  packSavingPercent,
+} from "./credits";
 
 describe("credit packs", () => {
   it("gives every new account exactly one free render", () => {
@@ -26,6 +36,28 @@ describe("credit packs", () => {
     for (const pack of CREDIT_PACKS) {
       expect(packMargin(pack, 4)).toBeGreaterThanOrEqual(0.6);
     }
+  });
+
+  // Same prices on iOS (owner's choice, 2026-09-28): Apple's 15% leaves less, so the bar is lower.
+  it("keeps at least 50% margin after Apple's 15% at a 4-cent render cost", () => {
+    for (const pack of CREDIT_PACKS) {
+      expect(packMargin(pack, 4, "apple")).toBeGreaterThanOrEqual(0.5);
+    }
+  });
+});
+
+describe("Apple products", () => {
+  it("maps each pack to one App Store product id and back", () => {
+    for (const pack of CREDIT_PACKS) {
+      expect(appleProductId(pack)).toBe(`io.scryapp.credits.${pack.id}`);
+      expect(creditPackForAppleProduct(appleProductId(pack))).toBe(pack);
+    }
+  });
+
+  it("rejects ids from anything else", () => {
+    expect(creditPackForAppleProduct("io.scryapp.credits.free-lunch")).toBeUndefined();
+    expect(creditPackForAppleProduct("com.other.app.credits.starter")).toBeUndefined();
+    expect(creditPackForAppleProduct("starter")).toBeUndefined();
   });
 });
 

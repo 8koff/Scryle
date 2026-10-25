@@ -22,7 +22,8 @@ export type SavedRender = {
 };
 
 export type NewRender = Omit<SavedRender, "keptAt" | "createdAt">;
-export type RenderFile = "before" | "after";
+/** "thumb" is a small preview of "after" for the iPhone app. Older renders may not have one. */
+export type RenderFile = "before" | "after" | "thumb";
 
 export type RenderStore = {
   /** Notes a render as it starts. Safe to call twice. */
@@ -35,7 +36,7 @@ export type RenderStore = {
   upload(render: SavedRender, file: RenderFile, bytes: Buffer): Promise<void>;
   /** Reads one stored picture back (to reopen the photo in the studio). */
   download(render: SavedRender, file: RenderFile): Promise<Buffer>;
-  /** Short-lived links to the pictures, in the same order as asked. */
+  /** Short-lived links to the pictures, in the same order as asked. "" for a picture that isn't stored. */
   fileUrls(files: { render: SavedRender; file: RenderFile }[], seconds: number): Promise<string[]>;
   /** Deletes every stored picture of this owner (for closing an account). The rows go with the account. */
   removeFilesOf(owner: string): Promise<void>;
@@ -45,6 +46,7 @@ export type RenderStore = {
 const REMOVE_BATCH = 500;
 
 const BUCKET = "renders";
+const FILES: readonly RenderFile[] = ["before", "after", "thumb"];
 const path = (r: SavedRender, file: RenderFile) => `${r.owner}/${r.jobId}/${file}.jpg`;
 
 type Row = {
@@ -130,7 +132,7 @@ export function createSupabaseRenderStore(db: SupabaseClient): RenderStore {
     async removeFilesOf(owner) {
       const { data, error } = await db.from("renders").select("job_id").eq("owner", owner).returns<{ job_id: string }[]>();
       if (error) throw new Error(`[renders] owner list failed: ${error.message}`);
-      const paths = (data ?? []).flatMap((r) => (["before", "after"] as const).map((f) => `${owner}/${r.job_id}/${f}.jpg`));
+      const paths = (data ?? []).flatMap((r) => FILES.map((f) => `${owner}/${r.job_id}/${f}.jpg`));
       for (let i = 0; i < paths.length; i += REMOVE_BATCH) {
         const removed = await db.storage.from(BUCKET).remove(paths.slice(i, i + REMOVE_BATCH));
         if (removed.error) throw new Error(`[renders] photo delete failed: ${removed.error.message}`);
@@ -177,7 +179,7 @@ export function createMemoryRenderStore(): RenderStore & { files: Map<string, Bu
       if (!bytes) throw new Error("not stored");
       return bytes;
     },
-    fileUrls: async (list) => list.map((f) => `https://storage.test/${path(f.render, f.file)}`),
+    fileUrls: async (list) => list.map((f) => (files.has(path(f.render, f.file)) ? `https://storage.test/${path(f.render, f.file)}` : "")),
     async removeFilesOf(owner) {
       for (const key of [...files.keys()]) if (key.startsWith(`${owner}/`)) files.delete(key);
     },
@@ -189,6 +191,8 @@ export type KeepDeps = {
   fetchImage: (url: string) => Promise<Buffer>;
   /** Turns a downloaded image into the JPEG we keep. */
   keep: (bytes: Buffer) => Promise<Buffer>;
+  /** Makes the small preview of the kept result. Without it, no preview is stored. */
+  thumb?: (bytes: Buffer) => Promise<Buffer>;
 };
 
 export type KeepResult = "kept" | "already" | "unknown";
@@ -209,8 +213,43 @@ export async function keepRender(jobId: string, resultUrl: string, deps: KeepDep
   const [before, after] = await Promise.all([deps.fetchImage(render.photoUrl), deps.fetchImage(resultUrl)]);
   const [keptBefore, keptAfter] = await Promise.all([deps.keep(before), deps.keep(after)]);
   await Promise.all([deps.renders.upload(render, "before", keptBefore), deps.renders.upload(render, "after", keptAfter)]);
+  if (deps.thumb) await storeThumb(render, keptAfter, { renders: deps.renders, thumb: deps.thumb });
   await deps.renders.markKept(jobId);
   return "kept";
+}
+
+type ThumbDeps = { renders: RenderStore; thumb: (bytes: Buffer) => Promise<Buffer> };
+
+/** A missing preview only costs data (the app shows the full picture), so failing here never fails the caller. */
+async function storeThumb(render: SavedRender, after: Buffer, deps: ThumbDeps): Promise<boolean> {
+  try {
+    await deps.renders.upload(render, "thumb", await deps.thumb(after));
+    return true;
+  } catch (error) {
+    console.error("[renders] preview failed", render.jobId, error instanceof Error ? error.message : error);
+    return false;
+  }
+}
+
+/** Previews made per list request for renders kept before previews existed. */
+export const THUMB_BACKFILL_LIMIT = 6;
+
+/**
+ * Makes the missing previews of the owner's renders, a few at a time. Runs after the list is
+ * sent, so the next list has them. Returns how many it made.
+ */
+export async function backfillThumbs(owner: string, jobIds: string[], deps: ThumbDeps): Promise<number> {
+  let made = 0;
+  for (const jobId of jobIds.slice(0, THUMB_BACKFILL_LIMIT)) {
+    const render = await deps.renders.get(jobId);
+    if (!render || render.owner !== owner || !render.keptAt) continue;
+    try {
+      if (await storeThumb(render, await deps.renders.download(render, "after"), deps)) made += 1;
+    } catch (error) {
+      console.error("[renders] preview backfill failed", jobId, error instanceof Error ? error.message : error);
+    }
+  }
+  return made;
 }
 
 /** How long the picture links on "My renders" work. The page asks again when opened. */
@@ -226,6 +265,16 @@ export async function listRenderCards(owner: string, renders: RenderStore): Prom
     ]),
     LINK_SECONDS,
   );
+  // Previews are signed apart from the full pictures: if that fails, the list still loads.
+  const thumbs = await renders
+    .fileUrls(
+      kept.map((render) => ({ render, file: "thumb" as const })),
+      LINK_SECONDS,
+    )
+    .catch((error: unknown) => {
+      console.error("[renders] preview links failed", error instanceof Error ? error.message : error);
+      return [] as string[];
+    });
   return kept.map((r, i) => ({
     jobId: r.jobId,
     pack: r.pack,
@@ -237,5 +286,6 @@ export async function listRenderCards(owner: string, renders: RenderStore): Prom
     createdAt: r.createdAt,
     beforeUrl: urls[i * 2] ?? "",
     afterUrl: urls[i * 2 + 1] ?? "",
+    thumbUrl: thumbs[i] ?? "",
   }));
 }

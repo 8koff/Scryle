@@ -10,7 +10,12 @@ import { waitlistRedirect } from "@/lib/site-mode";
 export function proxy(request: NextRequest) {
   const closedTo = waitlistRedirect(request.nextUrl.pathname);
   // 307: temporary, so search engines keep the pages for when the site opens again.
-  if (closedTo) return NextResponse.redirect(new URL(closedTo, request.url), 307);
+  if (closedTo) {
+    const to = new URL(closedTo, request.url);
+    // Keep the query (e.g. ?ref= from a marketing link): the waitlist saves it as where the visitor came from.
+    to.search = request.nextUrl.search;
+    return NextResponse.redirect(to, 307);
+  }
 
   const nonce = createNonce();
   const policy = contentSecurityPolicy({

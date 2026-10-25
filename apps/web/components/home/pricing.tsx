@@ -1,19 +1,18 @@
 import { MAX_SWAPS_PER_PICTURE } from "@retrofit/core";
-import Link from "next/link";
-import { PricingPacks } from "./pricing-packs";
+import { PlanPicker } from "@/components/account/plan-picker";
 
 /** One real example of a single picture with several swaps in it. */
 const EXAMPLE_SWAPS = ["Sofa", "Rug", "Wall colour"];
 
 const NOTES = [
-  "Pictures never expire.",
+  "Switch plans anytime.",
   "If a picture fails, you get it back.",
   "Going back to an earlier version is free.",
 ];
 
 /**
- * What it costs, and what you get for it. The one idea to land: you pay per finished picture,
- * and one picture can hold several swaps. Numbers come from the same list the checkout uses.
+ * What it costs, and what you get for it. The one idea to land: a plan gives finished pictures
+ * every month, and one picture can hold several swaps. Plans come from the same list the app uses.
  */
 export function Pricing() {
   return (
@@ -22,26 +21,11 @@ export function Pricing() {
         <h2 id="pricing-title" className="display text-[2.4rem] font-semibold sm:text-[3.4rem]">
           Pricing
         </h2>
-        <p className="text-[15px] text-muted">Pay once. No subscription.</p>
+        <p className="text-[15px] text-muted">Monthly or yearly. Cancel anytime.</p>
       </div>
 
       <PictureExplainer />
-      <PricingPacks />
-
-      <div className="mt-4 flex flex-col gap-4 rounded-[24px] border border-line p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7">
-        <p className="text-[17px]">
-          <span className="font-semibold">Your first picture is free.</span>{" "}
-          <span className="text-muted">
-            Sign in with your email to get it. Scanning and picking parts are always free.
-          </span>
-        </p>
-        <Link
-          href="/app?pack=room"
-          className="inline-flex h-11 w-max shrink-0 items-center rounded-full border border-line px-5 text-[15px] font-semibold transition-colors hover:bg-surface-2"
-        >
-          Try it free
-        </Link>
-      </div>
+      <PlanPicker variant="page" />
 
       <ul className="mt-6 grid gap-2 text-[15px] text-muted sm:grid-cols-3">
         {NOTES.map((note) => (
@@ -57,7 +41,7 @@ function PictureExplainer() {
   return (
     <div className="mt-8 grid gap-8 rounded-[28px] bg-surface p-7 sm:p-10 md:grid-cols-[1fr_1.1fr] md:items-center">
       <div>
-        <h3 className="display text-[2rem] font-semibold leading-tight sm:text-[2.6rem]">You pay per picture, not per item.</h3>
+        <h3 className="display text-[2rem] font-semibold leading-tight sm:text-[2.6rem]">Plans count pictures, not items.</h3>
         <p className="mt-3 text-[17px] text-muted sm:text-[19px]">
           A <span className="font-semibold text-fg">swap</span> is one thing you change, like the sofa. A{" "}
           <span className="font-semibold text-fg">picture</span> is the new photo we make, and one picture can hold up to{" "}

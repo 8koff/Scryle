@@ -16,6 +16,11 @@ describe("contentSecurityPolicy", () => {
     expect(connect).toContain("https://proj.supabase.co");
     expect(connect).toContain("wss://proj.supabase.co");
     expect(connect).toContain("https://storage.googleapis.com");
+    // Subscriptions: RevenueCat Web Billing and Stripe's card frames, nothing wider.
+    expect(connect).toContain("https://api.revenuecat.com");
+    expect(connect).toContain("https://e.revenue.cat");
+    expect(connect).toContain("https://api.stripe.com");
+    expect(directive(prod, "frame-src")).toBe("frame-src https://js.stripe.com https://*.js.stripe.com https://hooks.stripe.com");
     expect(directive(prod, "img-src")).toBe("img-src 'self' blob: data: https:");
   });
 

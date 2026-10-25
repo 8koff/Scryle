@@ -1,15 +1,26 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ApiResponse, CreditsInfo } from "@/lib/api";
+import type { ApiResponse, CreditsInfo, PlanInfo } from "@/lib/api";
 
 export type Account =
   | { status: "loading" }
   /** Supabase keys aren't set: renders will say accounts aren't ready. */
   | { status: "unavailable" }
   | { status: "signed-out" }
-  | { status: "signed-in"; email: string | undefined; name: string | null; avatarUrl: string | null; credits: number | null };
+  | {
+      status: "signed-in";
+      /** The account id. RevenueCat uses it as the app user id, so a plan bought here belongs to this account. */
+      userId: string;
+      email: string | undefined;
+      name: string | null;
+      avatarUrl: string | null;
+      /** Swaps left this month (0 without a plan); null until loaded. */
+      credits: number | null;
+      /** The plan giving swaps, or null without one (or before it has loaded). */
+      plan: PlanInfo | null;
+    };
 
 type Metadata = Record<string, unknown> | undefined;
-type SessionLike = { access_token: string; user: { email?: string; user_metadata?: Metadata } };
+type SessionLike = { access_token: string; user: { id: string; email?: string; user_metadata?: Metadata } };
 
 type Listener = () => void;
 
@@ -83,8 +94,9 @@ export function createAccountStore(getClient: () => SupabaseClient | null, fetch
     if (!token) return null;
     try {
       const body = (await (await authFetch("/api/credits", { cache: "no-store" })).json()) as ApiResponse<CreditsInfo>;
-      const credits = body.success ? body.data.credits : null;
-      setCredits(credits);
+      if (!body.success) return null;
+      const { credits, plan } = body.data;
+      if (state.status === "signed-in") set({ ...state, credits, plan: plan ?? null });
       return credits;
     } catch {
       return null;
@@ -101,9 +113,18 @@ export function createAccountStore(getClient: () => SupabaseClient | null, fetch
       const wasSignedIn = Boolean(token);
       token = session?.access_token ?? null;
       if (!session) return set({ status: "signed-out" });
-      const credits = state.status === "signed-in" ? state.credits : null;
+      // Same person (a token refresh): keep their balance and plan.
+      const known = state.status === "signed-in" && state.userId === session.user.id ? state : null;
       const meta = session.user.user_metadata;
-      set({ status: "signed-in", email: session.user.email, name: accountName(meta), avatarUrl: accountAvatar(meta), credits });
+      set({
+        status: "signed-in",
+        userId: session.user.id,
+        email: session.user.email,
+        name: accountName(meta),
+        avatarUrl: accountAvatar(meta),
+        credits: known?.credits ?? null,
+        plan: known?.plan ?? null,
+      });
       if (!wasSignedIn) void refreshCredits();
     };
 

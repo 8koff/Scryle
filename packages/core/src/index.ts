@@ -12,7 +12,10 @@ export { buildRenderPlan, type RenderPlan, type Selection } from "./render/plan"
 export { nearestAspectRatio } from "./render/aspect";
 
 export {
+  APPLE_PRODUCT_PREFIX,
+  appleProductId,
   CREDIT_PACKS,
+  creditPackForAppleProduct,
   creditPack,
   FREE_RENDERS,
   formatUsd,
@@ -22,4 +25,40 @@ export {
   packMargin,
   packSavingPercent,
 } from "./credits";
-export type { CreditPack, CreditPackId } from "./credits";
+export type { CreditPack, CreditPackId, PaymentStore } from "./credits";
+
+export {
+  addMonthsUtc,
+  allowanceMonthStart,
+  getPlanTier,
+  PLAN_TIERS,
+  planBilling,
+  planForProduct,
+  SUBSCRIPTION_PRODUCT_PREFIX,
+  subscriptionProductId,
+  yearlySavingPercent,
+} from "./subscriptions";
+export type { PlanPeriod, PlanTier, PlanTierId } from "./subscriptions";
+export { isPreview, offersFromPackages, previewOffers } from "./plan-offers";
+export type { PlanOffer } from "./plan-offers";
+
+export type {
+  ApiErrorCode,
+  ApiResponse,
+  CheckoutDone,
+  CreditsInfo,
+  PlanInfo,
+  InviteInfo,
+  RenderCard,
+  RenderStart,
+  RenderRequestStatus,
+  RenderStatus,
+  Reopened,
+  ScanResult,
+  SelectionInput,
+} from "./api";
+
+export { fitsPart, STUDIO_OPTIONS, studioParts } from "./studio";
+export type { StudioOption, StudioPart } from "./studio";
+
+export { AI_CONSENT_VERSION, type AiConsentInfo } from "./ai-consent";

@@ -1,4 +1,5 @@
-import { getAccounts, NOT_SET_UP, userFromRequest } from "@/lib/server/accounts";
+import { getAccounts, getAdminDb, NOT_SET_UP, userFromRequest } from "@/lib/server/accounts";
+import { createSupabaseRenderRequestStore } from "@/lib/server/render-requests";
 import { handleRender } from "@/lib/server/render";
 import { clientKey, getServices } from "@/lib/server/services";
 
@@ -41,6 +42,7 @@ export async function POST(request: Request) {
     credits: accounts.credits,
     recordRender: (r) => accounts.renders.record(r),
     findLive: (ids) => s.shop.store.getMany(ids),
+    requests: createSupabaseRenderRequestStore(getAdminDb()),
   });
   return Response.json(body, { status });
 }

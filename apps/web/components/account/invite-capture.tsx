@@ -1,6 +1,5 @@
 "use client";
 
-import { INVITE_RENDERS } from "@retrofit/core";
 import { useEffect, useState } from "react";
 import { account, useAccount } from "@/lib/account/use-account";
 import { readInvite, saveInvite, takeInviteCode } from "@/lib/account/invite-store";
@@ -24,7 +23,7 @@ export function InviteCapture() {
     window.history.replaceState(null, "", url.pathname + url.search + url.hash);
     if (saveInvite(window.localStorage, code)) {
       // Deferred so the message isn't set while this effect runs.
-      queueMicrotask(() => setNotice(`A friend invited you. When you buy your first pack, you both get ${INVITE_RENDERS} free pictures.`));
+      queueMicrotask(() => setNotice("A friend invited you to Scryle."));
     }
   }, []);
 

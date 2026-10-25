@@ -15,6 +15,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",
     "@retrofit/core": "*",
+    "@revenuecat/purchases-js": "^1.70.0",
     "@supabase/supabase-js": "^2.117.1",
     "@tensorflow-models/coco-ssd": "^2.2.3",
     "@tensorflow/tfjs-backend-webgl": "^4.22.0",
