@@ -6,7 +6,41 @@ Working notes for whoever picks up next (people or AI coding sessions). New here
 This repo is public. Account details (emails, dashboard ids, project refs, billing) live with the owner, not here.
 Never add them to this file or any other tracked file.
 
-## Mac session: iPhone app redesign + subscriptions (2026-10-07 → 10-11) — START HERE
+## Release check of PR 20, `fix/subscription-should-fixes` (2026-11-02, cloud session) — START HERE
+
+The Mac session below is now committed and pushed: it became PR 20. A cloud session checked PR 20 before the owner
+reviews it. No code changed; this note is the only change.
+
+- **Up to date with `main`:** yes. `main` hasn't moved since the branch started, so there was nothing to merge.
+- **Checks (Node 24, `npm ci`):** `npx turbo run typecheck test` passes: **core 58, web 472, app 119**. Web ESLint
+  and app ESLint (71 files) clean, `git diff --check` clean, `next build` passes.
+- **Tried in a browser** (local production build, no real keys, fake placeholder values only): the waitlist
+  redirect keeps `?ref=`; Terms, Privacy and the waitlist load with no errors or CSP blocks and no sideways scroll at
+  390 px and 1280 px. With waitlist mode switched off **locally only** (not committed): home, `/app`, `/app/account`
+  and `/login` load cleanly and the plan cards show the right prices. A scan without the AI "Allow" is refused (403)
+  before anything is sent, and a bad sign-in token is refused.
+- **Not tried (needs the owner, a Mac or real accounts):** signing in, any real or sandbox purchase, restore, the
+  RevenueCat webhook with real events, delete account against a real database, anything on an iPhone or Simulator.
+
+Owner decisions found (none are code bugs; each needs a choice):
+1. **App Review with a fresh account.** Test purchases only give a plan to accounts in
+   `REVENUECAT_SANDBOX_ACCOUNTS`. If the reviewer signs up with a new account and buys, the plan never arrives and
+   the app says "will appear in a moment" forever, which Apple rejects. Recommend: in the App Review notes, ask them
+   to use the demo account, and do **both** setup steps for it (list it and give it a promotional grant). The
+   promotional path assumes RevenueCat marks promo grants as real (`is_sandbox: false`); nobody has seen a real one.
+2. **A lost webhook can't be fixed by the user.** Only the webhook writes a plan. If RevenueCat gives up sending one,
+   the person paid but has no plan, and Restore doesn't make our server look again. Recommend: a small signed-in
+   "check my plan" route that re-reads RevenueCat for that one account, called after buy and restore.
+3. **One Apple plan, many accounts.** RevenueCat's default restore setting moves a plan to whichever account
+   restores it, and each account gets a fresh month of swaps. Recommend: in RevenueCat's project settings, set the
+   restore behavior to the option that only transfers when the old account has no active plan (check the current
+   wording in RevenueCat's docs).
+4. **Terms and Privacy:** still say "Last updated September 26, 2026" though they were rewritten on 2026-10-11 for
+   subscriptions, still show the "not checked by a lawyer" banner, and have no company name or contact email
+   (`LEGAL` in `packages/core/src/brand.ts`, protected). Apple's reviewer reaches them from the paywall.
+5. **Invites** still have no reward under plans (see "Owner decision pending" below); their panels stay hidden.
+
+## Mac session: iPhone app redesign + subscriptions (2026-10-07 → 10-11)
 
 Everything below is on the local branch **`feat/ios-app`** (tracks `origin/claude/web-vs-ios-strategy-435098`) in
 `~/Tessera/Scryle`. **Nothing is committed, pushed, merged or live** (~75 changed files). The live site is still in
