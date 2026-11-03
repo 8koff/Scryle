@@ -7,8 +7,13 @@ export const WAITLIST_ONLY = true;
 
 const WAITLIST = "/waitlist";
 
-/** Pages that stay open: the waitlist and its link image, the legal pages, and the site icons. */
-const OPEN = /^\/(?:waitlist(?:\/.*)?|privacy|terms|icon|apple-icon|opengraph-image|manifest\.webmanifest)$/;
+/**
+ * Pages that stay open: the waitlist and its link image, the legal pages, and the site icons. Also what the
+ * iPhone app sends people to: share links (/b/<id>), Buy links (/go/<id>), and /admin to review reports.
+ * Only real id shapes match, so the rest of the site stays closed.
+ */
+const OPEN =
+  /^\/(?:waitlist(?:\/.*)?|privacy|terms|icon|apple-icon|opengraph-image|manifest\.webmanifest|b\/[a-z0-9]{10}|go\/live-[a-f0-9]{20}|admin)$/;
 
 /** Where to send a visitor instead, or null to let the page load. */
 export function waitlistRedirect(pathname: string, isWaitlistOnly: boolean = WAITLIST_ONLY): string | null {
