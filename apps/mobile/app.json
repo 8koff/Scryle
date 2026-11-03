@@ -14,6 +14,9 @@
       "usesAppleSignIn": true,
       "config": {
         "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSPhotoLibraryAddUsageDescription": "Saves your before-and-after picture to Photos when you choose Save Image."
       }
     },
     "plugins": [
