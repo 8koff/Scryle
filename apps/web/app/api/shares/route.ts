@@ -27,6 +27,7 @@ export async function POST(request: Request) {
       userId: user?.id ?? null,
       shares: accounts.shares,
       jobOwner: (jobId) => accounts.credits.jobOwner(jobId),
+      renderOf: (jobId) => accounts.renders.get(jobId),
       fetchImage: (url) => fetchImage(url),
       keep: jpegToKeep,
       card: renderCardPng,
