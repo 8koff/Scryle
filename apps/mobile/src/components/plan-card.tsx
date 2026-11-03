@@ -1,4 +1,4 @@
-import { getPlanTier } from "@retrofit/core";
+import { getPlanTier, planBilling } from "@retrofit/core";
 import { router } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 import { manageSubscription } from "@/lib/purchases";
@@ -39,9 +39,12 @@ export function PlanCard() {
         <Text style={styles.title}>
           {tier?.label ?? plan.tier} plan<Text style={styles.period}>{`  ·  ${plan.period === "monthly" ? "Monthly" : "Yearly"}`}</Text>
         </Text>
-        <Text style={styles.manage} accessibilityRole="button" onPress={() => void manageSubscription(plan)}>
-          Manage
-        </Text>
+        {/* A free promotional plan (e.g. App Review's demo account) has no billing to manage. */}
+        {planBilling(plan) ? (
+          <Text style={styles.manage} accessibilityRole="button" onPress={() => void manageSubscription(plan)}>
+            Manage
+          </Text>
+        ) : null}
       </View>
       <View style={styles.meter} accessibilityLabel={`${left} of ${plan.swapsPerMonth} pictures left this month`}>
         <View style={[styles.meterFill, { width: `${Math.min(100, (left / Math.max(1, plan.swapsPerMonth)) * 100)}%` }]} />

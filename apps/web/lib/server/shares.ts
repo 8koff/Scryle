@@ -6,6 +6,7 @@ import type { GalleryStatus } from "@/lib/api";
 import { findProduct, fitsPart, type Product } from "@/lib/catalog/catalog";
 import { cleanDescription } from "@/lib/catalog/describe";
 import type { SelectionInput } from "@/lib/build/store";
+import type { SavedRender } from "./renders";
 import { handleShare, type ShareDeps } from "./share";
 import { lookupProducts, type FindLive } from "./shop/lookup";
 
@@ -288,6 +289,8 @@ export type CreateShareDeps = ShareDeps & {
   shares: ShareStore;
   /** Who paid for the render (from the credits ledger). Only they may publish it. */
   jobOwner: (jobId: string) => Promise<string | null>;
+  /** The saved render: which photo, category and products it was really made from. */
+  renderOf: (jobId: string) => Promise<Pick<SavedRender, "owner" | "photoUrl" | "pack" | "selections"> | null>;
   /** Downloads an image. */
   fetchImage: (url: string) => Promise<Buffer>;
   /** Turns a downloaded image into the JPEG we keep. */
@@ -311,14 +314,22 @@ export async function handleCreateShare(input: unknown, deps: CreateShareDeps): 
 
   const checked = await handleShare(input, deps);
   if (!checked.ok) return fail(checked.status, checked.error);
-  const { claim, jobId } = input as { claim: { pack: PackId; width: number; height: number }; jobId: string };
+  const { claim, jobId } = input as { claim: { photoUrl: string; pack: PackId; width: number; height: number }; jobId: string };
 
   if ((await deps.jobOwner(jobId)) !== deps.userId) return fail(403, "Only the person who made this picture can share it.");
+
+  // The photo token and the job token are each valid on their own, so tie them together here: a link
+  // may only show a render next to the photo it was made from, labelled with the products really used.
+  const render = await deps.renderOf(jobId);
+  if (!render) return fail(409, "This picture can't be shared.");
+  if (render.owner !== deps.userId || render.photoUrl !== claim.photoUrl || render.pack !== claim.pack) {
+    return fail(403, "That photo doesn't belong to this picture.");
+  }
 
   const existing = await deps.shares.findByJob(jobId);
   if (existing) return { status: 200, body: { success: true, data: { id: existing.id } } };
 
-  const { selections, labels } = checkSelections(claim.pack, parsedSelections.data, await lookupProducts(parsedSelections.data, deps.findLive));
+  const { selections, labels } = checkSelections(claim.pack, render.selections, await lookupProducts(render.selections, deps.findLive));
   const id = (deps.newId ?? newShareId)();
   const record = { id, owner: deps.userId, jobId, pack: claim.pack, width: claim.width, height: claim.height, selections, labels };
   try {

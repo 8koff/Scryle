@@ -27,6 +27,12 @@ const deps = (overrides: Partial<CreateShareDeps> = {}): CreateShareDeps => ({
   userId: "u1",
   shares: createMemoryShareStore(),
   jobOwner: vi.fn(async () => "u1"),
+  renderOf: vi.fn(async () => ({
+    owner: "u1",
+    photoUrl: claim.photoUrl,
+    pack: claim.pack,
+    selections: [{ partId: "outerwear", productId: "sample-bomber" }],
+  })),
   fetchImage: vi.fn(async (url: string) => Buffer.from(url)),
   keep: vi.fn(async (bytes: Buffer) => bytes),
   card: vi.fn(async () => Buffer.from("png")),
@@ -102,6 +108,37 @@ describe("handleCreateShare", () => {
     const d = deps({ userId: "u2" });
     expect((await handleCreateShare(input(), d)).status).toBe(403);
     expect(await d.shares.findByJob("job-12345678")).toBeNull();
+  });
+
+  it("refuses to pair a render with a photo it wasn't made from", async () => {
+    // A photo scanned separately (validly signed, but never rendered) must not become the link's "before".
+    const other: PhotoClaim = { ...claim, photoUrl: "https://cdn/someone-else.jpg" };
+    const d = deps();
+    const result = await handleCreateShare(input({ claim: other, token: signPhoto(other, SECRET) }), d);
+    expect(result.status).toBe(403);
+    expect(await d.shares.findByJob("job-12345678")).toBeNull();
+    expect(d.fetchImage).not.toHaveBeenCalled();
+  });
+
+  it("refuses a render whose category doesn't match the photo's", async () => {
+    const d = deps({ renderOf: vi.fn(async () => ({ owner: "u1", photoUrl: claim.photoUrl, pack: "room" as const, selections: [] })) });
+    expect((await handleCreateShare(input(), d)).status).toBe(403);
+    expect(await d.shares.findByJob("job-12345678")).toBeNull();
+  });
+
+  it("refuses when the render was never saved", async () => {
+    const d = deps({ renderOf: vi.fn(async () => null) });
+    expect((await handleCreateShare(input(), d)).status).toBe(409);
+    expect(await d.shares.findByJob("job-12345678")).toBeNull();
+  });
+
+  it("labels the link with the products that were really swapped, not what the request says", async () => {
+    const d = deps();
+    await handleCreateShare(input({ selections: [{ partId: "outerwear", productId: "made-up" }] }), d);
+    expect(await d.shares.get("abcdefgh23")).toMatchObject({
+      selections: [{ partId: "outerwear", productId: "sample-bomber" }],
+      labels: ["Black leather bomber jacket"],
+    });
   });
 
   it("removes the half-made link when the photos can't be kept", async () => {

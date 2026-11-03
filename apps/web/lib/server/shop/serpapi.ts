@@ -30,11 +30,21 @@ export const errorText = (error: unknown) =>
   (error instanceof Error ? `${error.name}: ${error.message}` : String(error)).replace(/api_key=[^&\s]+/g, "api_key=***");
 
 export class SerpApiError extends Error {
-  constructor(message: string) {
+  /**
+   * @param isNoResults True only when SerpApi answered normally that Google has no results. Every other
+   *   error (no searches left, bad key, outage) can pass, so nothing should be remembered from it.
+   */
+  constructor(
+    message: string,
+    readonly isNoResults = false,
+  ) {
     super(message);
     this.name = "SerpApiError";
   }
 }
+
+/** SerpApi's normal (HTTP 200) answer when Google found nothing. */
+const NO_RESULTS = /hasn't returned any results/i;
 
 const isHttps = (raw: string, host?: RegExp) => {
   try {
@@ -90,7 +100,8 @@ export function createSerpApi({ apiKey, fetch: fetchImpl = fetch }: SerpApiOptio
     const response = await fetchImpl(url, { signal: AbortSignal.timeout(TIMEOUT_MS), cache: "no-store" });
     const body = (await response.json().catch(() => null)) as Record<string, unknown> | null;
     if (!response.ok || !body || typeof body.error === "string") {
-      throw new SerpApiError(`SerpApi ${params.engine} failed (${response.status}): ${String(body?.error ?? "no body")}`);
+      const isNoResults = response.ok && typeof body?.error === "string" && NO_RESULTS.test(body.error);
+      throw new SerpApiError(`SerpApi ${params.engine} failed (${response.status}): ${String(body?.error ?? "no body")}`, isNoResults);
     }
     return body;
   }

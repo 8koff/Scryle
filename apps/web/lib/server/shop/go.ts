@@ -50,8 +50,9 @@ async function lookUpStore(product: StoredProduct, deps: ResolveDeps): Promise<S
     return offer ? { url: offer.link, isStore: true } : fallback;
   } catch (error) {
     console.error("[shop] offer lookup failed", product.id, errorText(error));
-    // SerpApi answered "no results": that won't change, so remember it. A network error might, so don't.
-    if (error instanceof SerpApiError) await keep(product.googleLink);
+    // SerpApi answered "no results": that won't change, so remember it. Anything else (no searches left, an
+    // outage, a network error) can pass, and remembering it would lose the store's own link for good.
+    if (error instanceof SerpApiError && error.isNoResults) await keep(product.googleLink);
     return fallback;
   }
 }

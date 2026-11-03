@@ -78,6 +78,24 @@ describe("createSerpApi", () => {
     await expect(api.search("sofa")).rejects.toBeInstanceOf(SerpApiError);
   });
 
+  it("marks only a real 'no results' answer as final", async () => {
+    const empty = vi.fn(async () => json({ error: "Google hasn't returned any results for this query." }));
+    const noResults = createSerpApi({ apiKey: "k", fetch: empty as unknown as typeof globalThis.fetch });
+    await expect(noResults.offers("tok-1")).rejects.toMatchObject({ isNoResults: true });
+
+    // Out of searches, a bad key or an outage can pass, so they must not be remembered.
+    for (const [body, status] of [
+      [{ error: "Your account has run out of searches." }, 429],
+      [{ error: "Invalid API key." }, 401],
+      [{ error: "Internal error" }, 503],
+      [{ error: "Your account has run out of searches." }, 200],
+    ] as const) {
+      const failing = vi.fn(async () => json(body, status));
+      const api = createSerpApi({ apiKey: "k", fetch: failing as unknown as typeof globalThis.fetch });
+      await expect(api.offers("tok-1")).rejects.toMatchObject({ isNoResults: false });
+    }
+  });
+
   it("never logs the key", () => {
     expect(errorText(new Error("GET https://serpapi.com/search.json?q=x&api_key=secret123 failed"))).not.toContain("secret123");
   });

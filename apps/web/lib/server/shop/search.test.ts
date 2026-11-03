@@ -156,7 +156,7 @@ describe("resolveStoreLink", () => {
   it("remembers when Google has no store list, so the next tap doesn't search again", async () => {
     const store = createMemoryShopStore();
     await store.saveSearch("k", [product]);
-    const api = { search: vi.fn(), offers: vi.fn(async () => Promise.reject(new SerpApiError("no results"))) } as unknown as SerpApi;
+    const api = { search: vi.fn(), offers: vi.fn(async () => Promise.reject(new SerpApiError("no results", true))) } as unknown as SerpApi;
     const d = { store, api, takeSearch: vi.fn(async () => true) };
 
     expect(await resolveStoreLink(product, d)).toEqual({ url: product.googleLink, isStore: false });
@@ -170,6 +170,16 @@ describe("resolveStoreLink", () => {
     await store.saveSearch("k", [product]);
     const api = { search: vi.fn(), offers: vi.fn(async () => Promise.reject(new TypeError("fetch failed"))) } as unknown as SerpApi;
     await resolveStoreLink(product, { store, api, takeSearch: async () => true });
+    expect((await store.getMany([product.id]))[0]?.storeUrl).toBeUndefined();
+  });
+
+  it("tries again later when SerpApi fails for a reason that can pass (no searches left, outage)", async () => {
+    const store = createMemoryShopStore();
+    await store.saveSearch("k", [product]);
+    const outOfSearches = new SerpApiError("SerpApi google_immersive_product failed (429): out of searches");
+    const api = { search: vi.fn(), offers: vi.fn(async () => Promise.reject(outOfSearches)) } as unknown as SerpApi;
+    expect(await resolveStoreLink(product, { store, api, takeSearch: async () => true })).toEqual({ url: product.googleLink, isStore: false });
+    // Not kept, so a later tap can still find the store's own page (and its referral tag).
     expect((await store.getMany([product.id]))[0]?.storeUrl).toBeUndefined();
   });
 

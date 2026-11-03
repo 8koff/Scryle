@@ -6,7 +6,106 @@ Working notes for whoever picks up next (people or AI coding sessions). New here
 This repo is public. Account details (emails, dashboard ids, project refs, billing) live with the owner, not here.
 Never add them to this file or any other tracked file.
 
-## Mac session: iPhone app redesign + subscriptions (2026-10-07 → 10-11) — START HERE
+## Full code audit of the release branch (2026-11-03, cloud session) — START HERE
+
+The owner asked for an intensive audit: bugs, security, and any way to lose money. Six reviewers read one area
+each (money out, money in, access control, web surface, database, iPhone app); every finding below was checked
+against the code before it was listed. A throwaway local Postgres was used for the SQL; nothing live was called.
+
+**Fixed on `tessera/relaxed-dirac-bftmlq` (no protected files touched), each with a test written first:**
+- Share links: `handleCreateShare` now takes the photo, category and products from the saved render
+  (`renderOf`), so a link can't show one photo as the "before" of a render made from another.
+- Website double billing: RevenueCat Web Billing only changes a plan with its non-public `productChangeInfo`;
+  a plain `purchase()` starts a second subscription. `webCanSellPlan` (core) blocks buying over any billed plan.
+  Correction to the 2026-11-02 note below, which said plan changes were handled.
+- `/go` store links: only a real SerpApi "no results" answer (`SerpApiError.isNoResults`) is remembered; out of
+  searches, bad key or an outage no longer save Google's page forever (lost referral tags).
+- Spend cap: a render is booked at least `MIN_RENDER_USD` (2¢), so a $0 estimate can't slip past a full cap.
+- Clothing safety: found products are re-checked with `isAllowedProduct` at render time; `promptTitle` drops
+  brackets and full stops (a title could close "(...)" and add its own sentence) and more steering words.
+- Waitlist mode keeps `/b/<id>`, `/go/live-<id>` and `/admin` open: the iPhone app's share and Buy links were
+  landing on the waitlist. Only real id shapes match.
+- App: `NSPhotoLibraryAddUsageDescription` added (Save Image in the share sheet would close the app); "Make a
+  link" opened the share sheet twice; no "Manage" link for a free promotional plan (it led to a closed page).
+
+Checks after the fixes: core 60, web 483, app 123 passing; web and app lint clean; `next build` passes.
+
+**Needs the owner (protected files, migrations, or a product choice), most important first:**
+1. Photo reads can cost far more than booked: `max_tokens: 16000` on Opus 5.5 ($20/M output) is up to ~33¢ a
+   read, booked as 5¢ (`SCAN_COST_USD`); SDK retries (2 by default) aren't booked. Lower `max_tokens`, set
+   `maxRetries`, and book the worst case or reconcile from `response.usage` (`vision/analyze.ts`, `anthropic.ts`, `scan.ts`).
+2. Anyone can scan without signing in (`scanCaller` "visitor" + `ai_consent=yes`), use up the shared daily scan
+   budget, and lock paying users out until UTC midnight. Require sign-in (and a plan) for scans; the web scan
+   flow (`components/scan/scan-flow.tsx`) must then send the token and save consent through `/api/ai-consent`.
+   Key per-visitor limits by user id and group IPv6 by /64 (`services.ts`).
+3. One paid plan feeds many accounts: `swap_allowance` is per account, so Restore/TRANSFER, delete-and-recreate,
+   or Family Sharing gives each account a fresh month. Count the allowance per purchase (new migration), ignore
+   `FAMILY_SHARED`, and set RevenueCat's restore behaviour to the strict option.
+4. Only the webhook saves plans: a lost webhook means paid with no plan, and Restore can't fix it. Add a
+   signed-in "check my plan" route that re-reads RevenueCat. Run 0012 before turning the webhook on.
+5. Upgrade Next.js 16.3.6 → 16.4.4 (2 critical, 2 high advisories; judged unreachable here, still patch),
+   sharp → 0.35.5, zod → 4.6.6 (`package.json`, lockfile).
+6. Reported shares stay downloadable: the `shares` bucket is public and hiding only sets `hidden_at`. Make it
+   private (signed URLs) or move the files on hide.
+7. Grace period and month-end: a new allowance month opens before the renewal is paid (grace), and for billing
+   days 29–31 a short month gives two. Store the paid end date and cap the month index (migration).
+8. Admin is chosen by email and depends on Supabase "Confirm email" being on; pin admins by user id (`admin.ts`).
+9. Clothing "live camera only" and 18+ are enforced in the app only; the server can't tell an upload. Decide:
+   signed-in clothing scans tied to the scanner's id, and/or App Attest.
+10. `/api/share` (signed-out share card, `share.ts`) can still pair any photo with any render; tie them as above.
+11. Verify in RevenueCat sandbox that deleting a customer cancels a website plan; listed sandbox testers get a
+    fresh month on every sandbox renewal (every few minutes).
+12. Webhook race: two deliveries can save an older RevenueCat read over a newer one (store `request_date_ms`).
+
+**Smaller (later):** app swap requests that never reached the server pile up and block swaps after 20 (needs a
+"sent" flag; delicate, it prevents double charges); after a plan change the app shows the old plan for a moment
+(downgrades only apply at renewal, so wording is needed); server request stuck "pending" after a database error
+before submit, and "You weren't charged" shown when a refund failed; sweep handles 200 jobs a day; `release_spend`
+credits today's row; fixed-window rate limits; `GET /api/render/[id]`, `/api/renders` and others have no rate
+limit; 12 tables keep Supabase's default anon grants (RLS still blocks them); `setup-all.sql` says it's safe to
+re-run but isn't once invites exist; `/go` can redirect to any store domain; a `purpose: prefetch` header skips
+the waitlist gate; scan trusts the declared image type; `isTrustedResultUrl` trusts any CloudFront host; waitlist
+POST accepts text/plain from other sites; Apple revoke isn't checked against the account's Apple id; app keeps
+some data after sign-out; generic Face ID text from expo-secure-store; `snap.tsx` thumbnail shows an AI picture
+without the "After (AI edit)" label; new money files (`subscriptions.ts`, RevenueCat webhook, render, scan route,
+AI consent, Apple sign-in) aren't in `CODEOWNERS`; `turbo.json` lacks the new server vars (harmless: Vercel runs
+`next build`). No secret was ever committed (all 61 commits scanned).
+
+## Release check of PR 20, `fix/subscription-should-fixes` (2026-11-02, cloud session)
+
+The Mac session below is now committed and pushed: it became PR 20. A cloud session checked PR 20 before the owner
+reviews it. No code changed; this note is the only change.
+
+- **Up to date with `main`:** yes. `main` hasn't moved since the branch started, so there was nothing to merge.
+- **Checks (Node 24, `npm ci`):** `npx turbo run typecheck test` passes: **core 58, web 472, app 119**. Web ESLint
+  and app ESLint (71 files) clean, `git diff --check` clean, `next build` passes.
+- **Tried in a browser** (local production build, no real keys, fake placeholder values only): the waitlist
+  redirect keeps `?ref=`; Terms, Privacy and the waitlist load with no errors or CSP blocks and no sideways scroll at
+  390 px and 1280 px. With waitlist mode switched off **locally only** (not committed): home, `/app`, `/app/account`
+  and `/login` load cleanly and the plan cards show the right prices. A scan without the AI "Allow" is refused (403)
+  before anything is sent, and a bad sign-in token is refused.
+- **Not tried (needs the owner, a Mac or real accounts):** signing in, any real or sandbox purchase, restore, the
+  RevenueCat webhook with real events, delete account against a real database, anything on an iPhone or Simulator.
+
+Owner decisions found (none are code bugs; each needs a choice):
+1. **App Review with a fresh account.** Test purchases only give a plan to accounts in
+   `REVENUECAT_SANDBOX_ACCOUNTS`. If the reviewer signs up with a new account and buys, the plan never arrives and
+   the app says "will appear in a moment" forever, which Apple rejects. Recommend: in the App Review notes, ask them
+   to use the demo account, and do **both** setup steps for it (list it and give it a promotional grant). The
+   promotional path assumes RevenueCat marks promo grants as real (`is_sandbox: false`); nobody has seen a real one.
+2. **A lost webhook can't be fixed by the user.** Only the webhook writes a plan. If RevenueCat gives up sending one,
+   the person paid but has no plan, and Restore doesn't make our server look again. Recommend: a small signed-in
+   "check my plan" route that re-reads RevenueCat for that one account, called after buy and restore.
+3. **One Apple plan, many accounts.** RevenueCat's default restore setting moves a plan to whichever account
+   restores it, and each account gets a fresh month of swaps. Recommend: in RevenueCat's project settings, set the
+   restore behavior to the option that only transfers when the old account has no active plan (check the current
+   wording in RevenueCat's docs).
+4. **Terms and Privacy:** still say "Last updated September 26, 2026" though they were rewritten on 2026-10-11 for
+   subscriptions, still show the "not checked by a lawyer" banner, and have no company name or contact email
+   (`LEGAL` in `packages/core/src/brand.ts`, protected). Apple's reviewer reaches them from the paywall.
+5. **Invites** still have no reward under plans (see "Owner decision pending" below); their panels stay hidden.
+
+## Mac session: iPhone app redesign + subscriptions (2026-10-07 → 10-11)
 
 Everything below is on the local branch **`feat/ios-app`** (tracks `origin/claude/web-vs-ios-strategy-435098`) in
 `~/Tessera/Scryle`. **Nothing is committed, pushed, merged or live** (~75 changed files). The live site is still in

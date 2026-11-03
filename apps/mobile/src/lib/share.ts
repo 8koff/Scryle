@@ -1,7 +1,6 @@
 import { BRAND, type SelectionInput } from "@retrofit/core";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
-import { Share } from "react-native";
 import { postJson, withTimeout } from "./api";
 import { claimOf, type Build } from "./builds";
 import { API_URL } from "./config";
@@ -43,7 +42,8 @@ export async function sharePicture(build: Build, job: ShareJob): Promise<string 
 
 /**
  * A public page with both photos and a "Try this on me" button. Anyone with the link can see
- * it until its owner deletes it. Returns the link, or an error message.
+ * it until its owner deletes it. Returns the link, or an error message. The screen opens the
+ * share sheet with it (once), so this doesn't.
  */
 export async function makeShareLink(
   build: Build,
@@ -52,8 +52,5 @@ export async function makeShareLink(
 ): Promise<{ url: string } | { error: string }> {
   const result = await postJson<{ id: string }>("/api/shares", { ...proof(build, job), selections });
   if (result.status === "error") return { error: result.message };
-  const url = `${API_URL}/b/${result.data.id}`;
-  // The sheet can be closed; nothing to report.
-  await Share.share({ url, message: SHARE_TEXT }).catch(() => {});
-  return { url };
+  return { url: `${API_URL}/b/${result.data.id}` };
 }
