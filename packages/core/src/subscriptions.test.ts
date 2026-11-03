@@ -7,6 +7,7 @@ import {
   planBilling,
   planForProduct,
   subscriptionProductId,
+  webCanSellPlan,
   yearlySavingPercent,
 } from "./subscriptions";
 
@@ -77,5 +78,19 @@ describe("planBilling", () => {
     expect(planBilling({ store: "stripe" })).toBe("web");
     expect(planBilling({ store: "promotional" })).toBeNull();
     expect(planBilling(null)).toBeNull();
+  });
+});
+
+describe("webCanSellPlan", () => {
+  it("never sells a second plan on the website, whoever bills the first", () => {
+    // Web Billing starts a new subscription instead of changing the old one, so "Switch" would bill twice.
+    expect(webCanSellPlan({ store: "rc_billing" })).toBe(false);
+    expect(webCanSellPlan({ store: "stripe" })).toBe(false);
+    expect(webCanSellPlan({ store: "app_store" })).toBe(false);
+  });
+
+  it("sells a plan to someone with none, or with only a free promotional one", () => {
+    expect(webCanSellPlan(null)).toBe(true);
+    expect(webCanSellPlan({ store: "promotional" })).toBe(true);
   });
 });

@@ -73,3 +73,10 @@ export function planBilling(plan: { store: string } | null | undefined): "apple"
   if (!plan || plan.store === "promotional") return null;
   return plan.store === "app_store" ? "apple" : "web";
 }
+
+/**
+ * Whether the website may sell a plan to someone who has `plan`. Only when nothing bills them yet: an Apple
+ * plan is changed in the app, and RevenueCat Web Billing starts a second subscription instead of changing the
+ * first (its plan-change mode isn't public), so "Switch" on the website would bill twice.
+ */
+export const webCanSellPlan = (plan: { store: string } | null | undefined) => planBilling(plan) === null;

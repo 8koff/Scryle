@@ -36,6 +36,7 @@ export {
   planForProduct,
   SUBSCRIPTION_PRODUCT_PREFIX,
   subscriptionProductId,
+  webCanSellPlan,
   yearlySavingPercent,
 } from "./subscriptions";
 export type { PlanPeriod, PlanTier, PlanTierId } from "./subscriptions";
