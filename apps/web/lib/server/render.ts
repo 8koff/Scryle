@@ -2,7 +2,7 @@ import { buildRenderPlan, getPack, isPackId, MAX_SWAPS_PER_PICTURE, SceneAnalysi
 import { z } from "zod";
 import type { ApiErrorCode, ApiResponse, RenderStart } from "@/lib/api";
 import { fitsPart, type Product } from "@/lib/catalog/catalog";
-import { cleanDescription, withoutSteering } from "@/lib/catalog/describe";
+import { cleanDescription, isAllowedProduct, withoutSteering } from "@/lib/catalog/describe";
 import type { CreditStore } from "./credits";
 import { HiggsfieldError } from "./higgsfield/client";
 import { buildEditRequest, type EditModelId } from "./higgsfield/models";
@@ -69,11 +69,27 @@ type Resolved = { selection: Selection; imagePath?: string };
 const PROMPT_TITLE_MAX = 90;
 
 /**
+ * The least a render is booked against the daily cap, whatever the price estimate says (the cheapest real
+ * render is about 2¢). A $0 estimate would otherwise fit under a used-up cap, so the cap would stop nothing.
+ */
+const MIN_RENDER_USD = 0.02;
+
+/**
+ * Words that ask the image model to do something, cut from store titles on top of `withoutSteering`. Kept
+ * separate because people's own typed words are checked (and refused) by the stricter `cleanDescription`.
+ */
+const TITLE_STEERING =
+  /\b(make|makes|making|change|changes|replace|turn|add|edit|body|bodies|skin|hair|head|lips|eyes|nose|shirtless|topless|slimmer|thinner|fatter|muscular|older|younger)\b/gi;
+
+/**
  * A store's product title, made safe for the edit prompt: plain words only, cut to length.
- * Store titles are written by strangers, so they get no say in the instructions.
+ * Store titles are written by strangers, so they get no say in the instructions. The prompt puts the
+ * title in brackets after a sentence, so brackets and full stops go too: a title can't close the
+ * bracket or start a sentence of its own.
  */
 export function promptTitle(title: string): string {
-  const plain = withoutSteering(title.replace(/[^\p{L}\p{N} ,.'&%()\-/+]/gu, " "));
+  const words = title.normalize("NFKC").replace(/[^\p{L}\p{N} ,'&%\-/+]/gu, " ").replace(TITLE_STEERING, " ");
+  const plain = withoutSteering(words);
   if (plain.length <= PROMPT_TITLE_MAX) return plain;
   return plain.slice(0, PROMPT_TITLE_MAX).replace(/\s+\S*$/, "");
 }
@@ -114,6 +130,8 @@ async function executeRender(input: z.infer<typeof RequestSchema>, deps: RenderD
     if ("productId" in s) {
       const product = lookup(s.productId);
       if (!product || !fitsPart(product, pack.id, s.partId)) return fail(400, "That product isn't available.");
+      // Found products were checked when the search ran; check again, as saved ones are kept and the rules can grow.
+      if (product.kind === "live" && !isAllowedProduct(product.title, pack.id)) return fail(400, "That product isn't available.");
       const title = product.kind === "live" ? promptTitle(product.title) : product.title;
       resolved.push({ selection: { partId: s.partId, product: { title, imageUrl: product.image } }, imagePath: product.image });
     } else {
@@ -149,7 +167,7 @@ async function executeRender(input: z.infer<typeof RequestSchema>, deps: RenderD
       height: claim.height,
     });
 
-    const costUsd = await deps.estimate(endpoint, body);
+    const costUsd = Math.max(await deps.estimate(endpoint, body), MIN_RENDER_USD);
     if (!(await deps.spend.tryReserve(costUsd))) {
       await deps.credits.refundEntry(entry);
       return fail(503, "We've hit today's picture limit. Please try again tomorrow. You weren't charged.");
